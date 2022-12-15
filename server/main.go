@@ -11,52 +11,9 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
-	"github.com/gofiber/websocket/v2"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
-
-type InboundMessage struct {
-	Content   string          `json:"msg"`
-	SenderUid string          `json:"uid"`
-	WsConn    *websocket.Conn `json:"-"`
-}
-
-type ChatServer struct {
-	connections      map[*websocket.Conn]bool
-	connectionsByUid map[string]*websocket.Conn
-
-	inbound chan InboundMessage
-
-	registerConn   chan *websocket.Conn
-	unregisterConn chan *websocket.Conn
-
-	//Rooms currently not set up
-	roomConnections      map[*websocket.Conn]bool
-	roomConnectionsByUid map[string]*websocket.Conn
-
-	registerRoomConn   chan *websocket.Conn
-	unregisterRoomConn chan *websocket.Conn
-}
-
-func NewChatServer() *ChatServer {
-	return &ChatServer{
-		connections:      make(map[*websocket.Conn]bool),
-		connectionsByUid: make(map[string]*websocket.Conn),
-
-		inbound: make(chan InboundMessage),
-
-		registerConn:   make(chan *websocket.Conn),
-		unregisterConn: make(chan *websocket.Conn),
-
-		//Rooms currently not set up
-		roomConnections:      make(map[*websocket.Conn]bool),
-		roomConnectionsByUid: make(map[string]*websocket.Conn),
-
-		registerRoomConn:   make(chan *websocket.Conn),
-		unregisterRoomConn: make(chan *websocket.Conn),
-	}
-}
 
 func main() {
 	app := fiber.New()
