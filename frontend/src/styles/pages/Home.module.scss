@@ -1,0 +1,21 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--padding);
+  padding: var(--padding);
+
+  .messages {
+    display: flex;
+    border: 1px solid var(--base-medium);
+    width: calc(100% - var(--padding) * 2);
+    border-radius: var(--border-radius-medium);
+    padding: var(--padding);
+  }
+
+  form {
+    display: flex;
+    gap: var(--padding);
+  }
+}

@@ -1,0 +1,60 @@
+body {
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New",
+    monospace;
+}
+
+input, button {
+  border-radius: var(--border-radius-small);
+  border: none;
+  outline: 1px solid var(--base-medium);
+}
+
+* {
+  color: var(--text-color);
+}
+
+:root {
+  background: #f0f1f3;
+
+  /* Component dimensions */
+  --nav-height: 3rem;
+
+  /* Component & layout colours */
+  --foreground: white;
+  --background: #f0f1f3;
+  --nav: rgb(9, 9, 9);
+
+  /* Component & Text Colours */
+  --text-color: black;
+  --text-color-contrast: white;
+
+  /* Colours - transparent varients for borders, et */
+  --base-heavy: rgba(0, 0, 0, 0.66);
+  --base-medium: rgba(0, 0, 0, 0.33);
+  --base-light: rgba(0, 0, 0, 0.166);
+  --base-pale: rgba(0, 0, 0, 0.066);
+  --base-heavy-contrast: rgba(255, 255, 255, 0.66);
+  --base-medium-contrast: rgba(255, 255, 255, 0.33);
+  --base-light-contrast: rgba(255, 255, 255, 0.166);
+  --base-pale-contrast: rgba(255, 255, 255, 0.066);
+
+  /* Border radius */
+  --border-radius: 0.275rem;
+  --border-radius-medium: 0.15rem;
+  --border-radius-small: 0.075rem;
+
+  /* Padding/Margin */
+  --padding: 0.25rem;
+  --padding-medium: 0.125rem;
+  --padding-small: 0.1rem;
+
+  /* Whitespace & Dimensions */
+  --horizontal-whitespace: %33.33;
+}

@@ -1,0 +1,10 @@
+.container {
+  width: calc(100% - var(--padding) * 2);
+  padding: var(--padding);
+  gap: var(--padding);
+  display: flex;
+  flex-direction: column;
+  button {
+    width: 100%;
+  }
+}
