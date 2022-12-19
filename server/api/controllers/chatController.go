@@ -6,6 +6,7 @@ import (
 	"cookie-session/api/validator"
 	"cookie-session/db"
 	"cookie-session/db/models"
+	"fmt"
 	"log"
 	"time"
 
@@ -32,12 +33,16 @@ type ChatServer struct {
 	registerConn   chan *websocket.Conn
 	unregisterConn chan *websocket.Conn
 
-	//Rooms currently not set up
-	roomConnections      map[*websocket.Conn]bool
-	roomConnectionsByUid map[string]*websocket.Conn
+	chatRooms []*ChatRoom
 
-	registerRoomConn   chan *websocket.Conn
-	unregisterRoomConn chan *websocket.Conn
+	registerRoomConn   chan ChatRoomConnectionRegistration
+	unregisterRoomConn chan ChatRoomConnectionRegistration
+}
+
+type ChatRoom struct {
+	connections      map[*websocket.Conn]bool
+	connectionsByUid map[string]*websocket.Conn
+	roomId           string
 }
 
 func HandleWsUpgrade(c *fiber.Ctx) error {
@@ -66,6 +71,11 @@ func HandleWsUpgrade(c *fiber.Ctx) error {
 	return fiber.ErrUpgradeRequired
 }
 
+type ChatRoomConnectionRegistration struct {
+	id  string
+	uid string
+}
+
 func SetupChatServer() (*ChatServer, chan string, error) {
 	//closeWsChan can be used to close websockets using the users id
 	closeWsChan := make(chan string)
@@ -79,19 +89,25 @@ func SetupChatServer() (*ChatServer, chan string, error) {
 		registerConn:   make(chan *websocket.Conn),
 		unregisterConn: make(chan *websocket.Conn),
 
-		//Rooms currently not set up
-		roomConnections:      make(map[*websocket.Conn]bool),
-		roomConnectionsByUid: make(map[string]*websocket.Conn),
+		registerRoomConn:   make(chan ChatRoomConnectionRegistration), //register connection by uid
+		unregisterRoomConn: make(chan ChatRoomConnectionRegistration), //unregister connection by uid
 
-		registerRoomConn:   make(chan *websocket.Conn),
-		unregisterRoomConn: make(chan *websocket.Conn),
+		chatRooms: make([]*ChatRoom, 0),
 	}
 
 	go func() {
 		for {
 			msg := <-chatServer.inbound
-			for wsConn := range chatServer.connections {
-				wsConn.WriteJSON(msg)
+			for i := range chatServer.chatRooms {
+				conn := chatServer.chatRooms[i].connectionsByUid[msg.SenderUid]
+				if conn != nil {
+					for connI := range chatServer.chatRooms[i].connections {
+						if conn != connI && connI != nil {
+							println("Send msg : ", msg.Content)
+							connI.WriteJSON(msg.Content)
+						}
+					}
+				}
 			}
 		}
 	}()
@@ -120,12 +136,47 @@ func HandleWsConn(chatServer *ChatServer, closeWsChan chan string) func(*fiber.C
 			delete(chatServer.connections, c)
 			delete(chatServer.connectionsByUid, c.Locals("uid").(primitive.ObjectID).Hex())
 		}()
+		go func() {
+			c := <-chatServer.registerRoomConn
+			conn := chatServer.connectionsByUid[c.uid]
+			foundRoom := false
+			for i := range chatServer.chatRooms {
+				if chatServer.chatRooms[i].roomId == c.id {
+					chatServer.chatRooms[i].connections[conn] = true
+					chatServer.chatRooms[i].connectionsByUid[c.uid] = conn
+					foundRoom = true
+				}
+			}
+			if !foundRoom {
+				//if the room is not found, that means there are no active connections,
+				//but the room is there in the database. So go look for it and create the chatServer application data
+				connections := make(map[*websocket.Conn]bool)
+				connectionsByUid := make(map[string]*websocket.Conn)
+				connections[conn] = true
+				connectionsByUid[c.uid] = conn
+				roomId := c.id
+				chatServer.chatRooms = append(chatServer.chatRooms, &ChatRoom{
+					connections,
+					connectionsByUid,
+					roomId,
+				})
+			}
+		}()
+		go func() {
+			c := <-chatServer.unregisterRoomConn
+			conn := chatServer.connectionsByUid[c.uid]
+			for i := range chatServer.chatRooms {
+				if chatServer.chatRooms[i].roomId == c.id {
+					delete(chatServer.chatRooms[i].connections, conn)
+					delete(chatServer.chatRooms[i].connectionsByUid, c.uid)
+				}
+			}
+		}()
 
 		chatServer.registerConn <- c
-
 		for {
 			var (
-				_   int //unused "mt / message type" parameter... dont get the point of this.
+				_   int //unused "mt / message type" parameter... dont get the point of this. doesn't seem to be any way to change it
 				msg []byte
 				err error
 			)
@@ -142,6 +193,31 @@ func HandleWsConn(chatServer *ChatServer, closeWsChan chan string) func(*fiber.C
 				Content:   string(msg),
 				SenderUid: c.Locals("uid").(primitive.ObjectID).Hex(),
 			}
+			// Find room and write message to db
+			for i := range chatServer.chatRooms {
+				for connI := range chatServer.chatRooms[i].connections {
+					if connI == c {
+						oid, err := primitive.ObjectIDFromHex(chatServer.chatRooms[i].roomId)
+						if err != nil {
+							break
+						}
+						var room models.Room
+						found := db.RoomCollection.FindOne(context.TODO(), bson.M{"_id": oid})
+						if found == nil {
+							break
+						} else {
+							found.Decode(&room)
+						}
+						msg := models.Message{
+							Content:   string(msg),
+							Uid:       c.Locals("uid").(primitive.ObjectID).Hex(),
+							Timestamp: primitive.NewDateTimeFromTime(time.Now()),
+						}
+						println("Push array")
+						db.RoomCollection.UpdateOne(context.TODO(), bson.M{"_id": oid}, bson.M{"$push": bson.M{"messages": msg}})
+					}
+				}
+			}
 		}
 		defer func() {
 			if c.Locals("uid") != "" {
@@ -156,7 +232,6 @@ func HandleWsConn(chatServer *ChatServer, closeWsChan chan string) func(*fiber.C
 func GetRooms(c *fiber.Ctx) error {
 	var rooms []models.Room
 	var findFilter bson.M = bson.M{}
-	println("QUERY OWN : ", c.Query("own"))
 	if c.Query("own") == "true" {
 		uid, err := helpers.DecodeTokenAndGetUID(c)
 		if err != nil {
@@ -165,9 +240,7 @@ func GetRooms(c *fiber.Ctx) error {
 				"message": "Unauthorized",
 			})
 		}
-		findFilter = bson.M{
-			"author_id": uid.Hex(),
-		}
+		findFilter = bson.M{"author_id": uid}
 	}
 	cur, err := db.RoomCollection.Find(c.Context(), findFilter)
 	if err != nil {
@@ -220,6 +293,8 @@ func GetRoom(c *fiber.Ctx) error {
 		}
 	}
 
+	fmt.Println("Room ID : ", room.ID)
+
 	c.Status(fiber.StatusOK)
 	return c.JSON(room)
 }
@@ -246,6 +321,7 @@ func CreateRoom(c *fiber.Ctx) error {
 		CreatedAt: primitive.NewDateTimeFromTime(time.Now()),
 		UpdatedAt: primitive.NewDateTimeFromTime(time.Now()),
 		Author:    uid,
+		Messages:  []models.Message{},
 	})
 
 	if err != nil {
@@ -265,7 +341,7 @@ func CreateRoom(c *fiber.Ctx) error {
 	})
 }
 
-func UpdateRoomName(c *fiber.Ctx) error {
+func UpdateRoom(c *fiber.Ctx) error {
 	if c.Params("id") == "" {
 		c.Status(fiber.StatusBadRequest)
 		c.JSON(fiber.Map{
@@ -335,4 +411,93 @@ func DeleteRoom(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{
 		"message": "Room deleted",
 	})
+}
+
+func JoinRoom(chatServer *ChatServer) func(*fiber.Ctx) error {
+	return func(c *fiber.Ctx) error {
+		uid, err := helpers.DecodeTokenAndGetUID(c)
+		if err != nil {
+			c.Status(fiber.StatusUnauthorized)
+			return c.JSON(fiber.Map{
+				"message": "Unauthorized",
+			})
+		}
+
+		if c.Params("id") == "" {
+			c.Status(fiber.StatusBadRequest)
+			return c.JSON(fiber.Map{
+				"message": "Bad request",
+			})
+		}
+		id, err := primitive.ObjectIDFromHex(c.Params("id"))
+		if err != nil {
+			c.Status(fiber.StatusBadRequest)
+			return c.JSON(fiber.Map{
+				"message": "Bad request",
+			})
+		}
+
+		var room models.Room
+		found := db.RoomCollection.FindOne(c.Context(), bson.M{"_id": id})
+		if found == nil {
+			c.Status(fiber.StatusNotFound)
+			return c.JSON(fiber.Map{
+				"message": "Room not found",
+			})
+		} else {
+			found.Decode(&room)
+		}
+
+		chatServer.registerRoomConn <- ChatRoomConnectionRegistration{id: c.Params("id"), uid: uid.Hex()}
+
+		fmt.Println("Room ID : ", room.ID)
+
+		c.Status(fiber.StatusOK)
+		return c.JSON(room)
+	}
+}
+
+func LeaveRoom(chatServer *ChatServer) func(*fiber.Ctx) error {
+	return func(c *fiber.Ctx) error {
+		uid, err := helpers.DecodeTokenAndGetUID(c)
+		if err != nil {
+			c.Status(fiber.StatusUnauthorized)
+			return c.JSON(fiber.Map{
+				"message": "Unauthorized",
+			})
+		}
+
+		if c.Params("id") == "" {
+			c.Status(fiber.StatusBadRequest)
+			return c.JSON(fiber.Map{
+				"message": "Bad request",
+			})
+		}
+
+		id, err := primitive.ObjectIDFromHex(c.Params("id"))
+		if err != nil {
+			c.Status(fiber.StatusBadRequest)
+			return c.JSON(fiber.Map{
+				"message": "Bad request",
+			})
+		}
+
+		var room bson.M
+		db.RoomCollection.FindOne(c.Context(), bson.M{"_id": id}).Decode(&room)
+		if len(room) == 0 {
+			c.Status(fiber.StatusNotFound)
+			return c.JSON(fiber.Map{
+				"message": "Room not found",
+			})
+		}
+
+		chatServer.unregisterRoomConn <- ChatRoomConnectionRegistration{id: c.Params("id"), uid: uid.Hex()}
+
+		println("Left room")
+
+		c.Status(fiber.StatusOK)
+		return c.JSON(fiber.Map{
+			"message": "Left room",
+		})
+	}
 }

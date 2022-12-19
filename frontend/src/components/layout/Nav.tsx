@@ -39,7 +39,7 @@ export default function Nav() {
           </>
         )}
       </div>
-      {user && user._id}
+      {user && user.ID}
     </nav>
   );
 }

@@ -19,6 +19,9 @@ func Setup(app *fiber.App, chatServer *controllers.ChatServer, closeWsChan chan 
 	app.Use("/ws", controllers.HandleWsUpgrade)
 	app.Get("/ws/conn", controllers.HandleWsConn(chatServer, closeWsChan))
 	app.Get("/api/room/:id", controllers.GetRoom)
+	app.Patch("/api/room/:id", controllers.UpdateRoom)
+	app.Post("/api/room/:id/join", controllers.JoinRoom(chatServer))
+	app.Post("/api/room/:id/leave", controllers.LeaveRoom(chatServer))
 	app.Get("/api/rooms", controllers.GetRooms)
 	app.Post("/api/rooms", controllers.CreateRoom)
 }

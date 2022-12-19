@@ -15,10 +15,22 @@ const createRoom = (data: { name: string }) =>
     data,
   });
 
+const joinRoom = (id: string) =>
+  makeRequest(`/api/room/${id}/join`, {
+    method: "POST",
+    withCredentials: true,
+  });
+
+const leaveRoom = (id: string) =>
+  makeRequest(`/api/room/${id}/leave`, {
+    method: "POST",
+    withCredentials: true,
+  });
+
 const updateRoom = (id: string, data: { name: string }) =>
   makeRequest(`/api/rooms/${id}`, {
     method: "PATCH",
     data,
   });
 
-export { getRoom, getRooms, createRoom, updateRoom };
+export { getRoom, getRooms, createRoom, updateRoom, joinRoom, leaveRoom };

@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { makeRequest } from "../services/makeRequest";
 
 export interface IUser {
-  _id: string;
+  ID: string;
   username: string;
 }
 

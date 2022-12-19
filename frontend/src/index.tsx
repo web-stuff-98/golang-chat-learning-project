@@ -1,4 +1,3 @@
-import React from "react";
 import ReactDOM from "react-dom/client";
 import "./index.css";
 import App from "./App";
@@ -10,12 +9,12 @@ import Register from "./routes/Register";
 import RoomEditor from "./routes/RoomEditor";
 import RoomMenu from "./routes/RoomMenu";
 import RoomList from "./routes/RoomList";
+import Room from "./routes/Room";
 
 const root = ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement
 );
 root.render(
-  <React.StrictMode>
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<App />}>
@@ -25,8 +24,8 @@ root.render(
           <Route path="room/edit" element={<RoomEditor />} />
           <Route path="room/menu" element={<RoomMenu />} />
           <Route path="room/list" element={<RoomList />} />
+          <Route path="room/:id" element={<Room />} />
         </Route>
       </Routes>
     </BrowserRouter>
-  </React.StrictMode>
 );

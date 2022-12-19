@@ -1,0 +1,15 @@
+.container {
+  padding: 0;
+  margin: 0;
+  line-height: 1;
+  border: none;
+  outline: none;
+  background: none;
+
+  .icon {
+    line-height: 1;
+    width: var(--font-lg);
+    height: var(--font-lg);
+    color: var(--text-color);
+  }
+}

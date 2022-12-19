@@ -15,6 +15,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+// close websocket connection using sid
 func closeWsConn(c *fiber.Ctx, closeWsChan chan string, cookie string) error {
 	if cookie == "" {
 		return nil
@@ -100,7 +101,7 @@ func Login(c *fiber.Ctx) error {
 		})
 	}
 
-	var user bson.M
+	var user models.User
 	err := db.UserCollection.FindOne(c.Context(), bson.M{"username": bson.M{"$regex": body.Username, "$options": "i"}}).Decode(&user)
 
 	if err != nil {
@@ -116,7 +117,7 @@ func Login(c *fiber.Ctx) error {
 		})
 	}
 
-	hashErr := bcrypt.CompareHashAndPassword([]byte(user["password"].(string)), []byte(body.Password))
+	hashErr := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(body.Password))
 	if hashErr != nil {
 		c.Status(fiber.StatusBadRequest)
 		return c.JSON(fiber.Map{
@@ -125,7 +126,7 @@ func Login(c *fiber.Ctx) error {
 	}
 
 	expiresAt := time.Now().Add(120 * time.Second)
-	token, err := helpers.GenerateToken(c, user["_id"].(primitive.ObjectID), expiresAt, false)
+	token, err := helpers.GenerateToken(c, user.ID, expiresAt, false)
 
 	c.Cookie(&fiber.Cookie{
 		Name:    "session_token",
@@ -133,10 +134,7 @@ func Login(c *fiber.Ctx) error {
 		Expires: expiresAt,
 	})
 
-	return c.JSON(fiber.Map{
-		"username": &body.Username,
-		"_id":      user["_id"],
-	})
+	return c.JSON(user)
 }
 
 func Logout(closeWsChan chan string) fiber.Handler {

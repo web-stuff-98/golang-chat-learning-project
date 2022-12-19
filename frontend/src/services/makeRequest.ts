@@ -9,7 +9,7 @@ export function makeRequest(url: string, options?: AxiosRequestConfig) {
     .then((res) => res.data)
     .catch((error) =>
       Promise.reject(
-        (error.response?.data.msg ?? "Error").replace("Error: ", "")
+        (error.response?.data.message ?? "Error").replace("Error: ", "")
       )
     );
 }

@@ -10,7 +10,6 @@ const SocketContext = createContext<{
 
 export const SocketProvider = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
-
   const [socket, setSocket] = useState<WebSocket>();
 
   useEffect(() => {
@@ -19,18 +18,6 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
     //dont know how to configure go-fiber websocket to use this protocol... I have
     //set up a different method for authenticating the socket connection...
     const socket = new WebSocket("ws://localhost:8080/ws/conn");
-    if (!socket) return;
-
-    socket.onopen = () => {
-      console.log("Socket connected");
-    };
-
-    socket.onmessage = (e) => {
-      console.log("Message type : " + e.type);
-      console.log("Event target : " + e.target);
-      console.log("Message received : " + e.data);
-    };
-
     setSocket(socket);
     return () => {
       socket.close();
