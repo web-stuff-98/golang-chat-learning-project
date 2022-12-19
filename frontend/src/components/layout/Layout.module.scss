@@ -22,7 +22,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0 0.866rem;
+    padding: 0 calc(var(--horizontal-whitespace) + 0.866rem);
     color: var(--text-color-contrast);
 
     .navLinks {
