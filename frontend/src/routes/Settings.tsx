@@ -3,7 +3,7 @@ import type { ChangeEvent } from "react";
 import User from "../components/User";
 import classes from "../styles/pages/Settings.module.scss";
 import { IUser, useAuth } from "../context/AuthContext";
-import { IResMsg } from "../components/ResMsg";
+import ResMsg, { IResMsg } from "../components/ResMsg";
 import { makeRequest } from "../services/makeRequest";
 
 export default function Settings() {
@@ -46,6 +46,7 @@ export default function Settings() {
         fr.onerror = () => reject("Error");
       });
       updateUserState({ base64pfp: b64 });
+      setResMsg({ msg: "", err: false, pen: false });
     } catch (e) {
       setResMsg({ msg: `${e}`, err: true, pen: false });
     }
@@ -72,6 +73,7 @@ export default function Settings() {
         onClick={() => hiddenPfpInputRef.current?.click()}
       />
       <p>You can click on your profile to select a new image.</p>
+      <ResMsg resMsg={resMsg} />
     </form>
   );
 }
