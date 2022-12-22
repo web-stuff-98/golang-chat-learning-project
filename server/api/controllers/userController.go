@@ -6,6 +6,7 @@ import (
 	"cookie-session/api/validator"
 	"cookie-session/db"
 	"cookie-session/db/models"
+	"encoding/base64"
 	"fmt"
 	"image"
 	"image/jpeg"
@@ -122,6 +123,13 @@ func Login(c *fiber.Ctx) error {
 		return c.JSON(fiber.Map{
 			"message": "Internal error",
 		})
+	}
+
+	var pfp models.Pfp
+	pfperr := db.PfpCollection.FindOne(c.Context(), bson.M{"_id": user.ID}).Decode(&pfp)
+
+	if pfperr == nil {
+		user.Base64pfp = "data:image/jpeg;base64," + base64.StdEncoding.EncodeToString(pfp.Binary.Data)
 	}
 
 	hashErr := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(body.Password))
@@ -288,8 +296,7 @@ func Refresh(closeWsChan chan string) fiber.Handler {
 		})
 
 		return c.JSON(fiber.Map{
-			"username": user["username"],
-			"_id":      user["_id"],
+			"_id": user["_id"],
 		})
 	}
 }
@@ -387,9 +394,41 @@ func UpdatePfp(c *fiber.Ctx) error {
 }
 
 func GetUser(c *fiber.Ctx) error {
+	uid, err := primitive.ObjectIDFromHex(c.Params("id"))
+	if err != nil {
+		c.Status(fiber.StatusBadRequest)
+		return c.JSON(fiber.Map{
+			"message": "Invalid ID",
+		})
+	}
+
+	var user models.User
+	count, err := db.UserCollection.CountDocuments(c.Context(), bson.M{"_id": uid})
+	if err != nil {
+		c.Status(fiber.StatusInternalServerError)
+		return c.JSON(fiber.Map{
+			"message": "Internal error",
+		})
+	} else if count == 0 {
+		c.Status(fiber.StatusNotFound)
+		return c.JSON(fiber.Map{
+			"message": "User not found",
+		})
+	}
+	db.UserCollection.FindOne(c.Context(), bson.M{"_id": uid}).Decode(&user)
+
+	var pfp models.Pfp
+	pfpcount, pfperr := db.PfpCollection.CountDocuments(c.Context(), bson.M{"_id": uid})
+	if pfperr != nil {
+		c.Status(fiber.StatusInternalServerError)
+		return c.JSON(fiber.Map{
+			"message": "Internal error",
+		})
+	} else if pfpcount != 0 {
+		db.PfpCollection.FindOne(c.Context(), bson.M{"_id": uid}).Decode(&pfp)
+		user.Base64pfp = "data:image/jpeg;base64," + base64.StdEncoding.EncodeToString(pfp.Binary.Data)
+	}
 
 	c.Status(fiber.StatusOK)
-	return c.JSON(fiber.Map{
-		"message": "Updated pfp",
-	})
+	return c.JSON(user)
 }

@@ -32,7 +32,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       data: { username, password },
       withCredentials: true,
     });
-    console.log(res);
     setUser(res);
   };
 
@@ -43,7 +42,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       data: { username, password },
       withCredentials: true,
     });
-    console.log(res);
     setUser(res);
   };
 

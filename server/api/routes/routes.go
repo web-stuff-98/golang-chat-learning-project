@@ -13,6 +13,7 @@ func Setup(app *fiber.App, chatServer *controllers.ChatServer, closeWsChan chan 
 	app.Post("/api/updatepfp", controllers.UpdatePfp)
 	app.Post("/api/refresh", controllers.Refresh(closeWsChan))
 	app.Post("/api/logout", controllers.Logout(closeWsChan))
+	app.Get("/api/user/:id", controllers.GetUser)
 
 	app.Use("/ws", controllers.HandleWsUpgrade)
 	app.Get("/ws/conn", controllers.HandleWsConn(chatServer, closeWsChan))
