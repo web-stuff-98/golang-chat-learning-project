@@ -34,3 +34,9 @@ type Room struct {
 	UpdatedAt primitive.DateTime `bson:"updated_at" json:"updated_at"`
 	Messages  []Message          `bson:"messages" json:"messages"`
 }
+
+//this is for the socket event when a user updates their profile
+type UserUpdateEvent struct {
+	UID       string
+	base64pfp string
+}

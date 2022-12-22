@@ -303,94 +303,108 @@ func Refresh(closeWsChan chan string) fiber.Handler {
 
 const maxPfpSize = 20 * 1024 * 1024 //20mb
 
-func UpdatePfp(c *fiber.Ctx) error {
-	file, err := c.FormFile("file")
-	if err != nil {
-		c.Status(fiber.StatusBadRequest)
+func UpdatePfp(chatServer *ChatServer) func(*fiber.Ctx) error {
+	return func(c *fiber.Ctx) error {
+		file, err := c.FormFile("file")
+		if err != nil {
+			c.Status(fiber.StatusBadRequest)
+			return c.JSON(fiber.Map{
+				"message": err,
+			})
+		}
+
+		if file.Size > maxPfpSize {
+			c.Status(fiber.StatusBadRequest)
+			return c.JSON(fiber.Map{
+				"message": "File too large. Max 20mb.",
+			})
+		}
+
+		if !strings.HasPrefix(file.Header.Get("Content-Type"), "image/") {
+			c.Status(fiber.StatusBadRequest)
+			return c.JSON(fiber.Map{
+				"message": "File is not an image",
+			})
+		}
+
+		src, err := file.Open()
+		if err != nil {
+			c.Status(fiber.StatusInternalServerError)
+			return c.JSON(fiber.Map{
+				"message": "Error opening file",
+			})
+		}
+		defer src.Close()
+
+		// Decode the image from the file
+		var img image.Image
+		var decodeErr error
+		if file.Header.Get("Content-Type") == "image/jpeg" {
+			img, decodeErr = jpeg.Decode(src)
+		} else if file.Header.Get("Content-Type") == "image/png" {
+			img, decodeErr = png.Decode(src)
+		} else {
+			c.Status(fiber.StatusBadRequest)
+			return c.JSON(fiber.Map{
+				"message": "Unrecognized / unsupported format",
+			})
+		}
+		if decodeErr != nil {
+			c.Status(fiber.StatusInternalServerError)
+			return c.JSON(fiber.Map{
+				"message": "Internal error",
+			})
+		}
+
+		img = resize.Resize(64, 64, img, resize.Lanczos2)
+		buf := &bytes.Buffer{}
+		if err := jpeg.Encode(buf, img, nil); err != nil {
+			c.Status(fiber.StatusInternalServerError)
+			return c.JSON(fiber.Map{
+				"message": "Internal error",
+			})
+		}
+
+		uid, err := helpers.DecodeTokenAndGetUID(c)
+		if err != nil {
+			c.Status(fiber.StatusNotFound)
+			return c.JSON(fiber.Map{
+				"message": "Your session could not be found",
+			})
+		}
+
+		count, err := db.PfpCollection.CountDocuments(c.Context(), bson.M{"_id": uid})
+		if count != 0 {
+			db.PfpCollection.UpdateByID(c.Context(), uid, models.Pfp{
+				Binary: primitive.Binary{Data: buf.Bytes()},
+			})
+		} else {
+			db.PfpCollection.InsertOne(c.Context(), models.Pfp{
+				ID:     uid,
+				Binary: primitive.Binary{Data: buf.Bytes()},
+			})
+		}
+
+		//find all the chatrooms the user is in and send the pfp update to other users through the websocket api
+		for i := range chatServer.chatRooms {
+			for conn := range chatServer.chatRooms[i].connections {
+				if conn.Locals("uid").(primitive.ObjectID) != uid {
+					conn.WriteJSON(fiber.Map{
+						"ID":        uid.Hex(),
+						"base64pfp": "data:image/jpeg;base64," + base64.StdEncoding.EncodeToString(buf.Bytes()),
+					})
+				}
+			}
+		}
+
+		//clear the buffer. garbage collection does this automatically but this might be a little faster
+		buf = nil
+
+		c.Status(fiber.StatusOK)
 		return c.JSON(fiber.Map{
-			"message": err,
+			"message": "Updated pfp",
 		})
 	}
-
-	if file.Size > maxPfpSize {
-		c.Status(fiber.StatusBadRequest)
-		return c.JSON(fiber.Map{
-			"message": "File too large. Max 20mb.",
-		})
-	}
-
-	if !strings.HasPrefix(file.Header.Get("Content-Type"), "image/") {
-		c.Status(fiber.StatusBadRequest)
-		return c.JSON(fiber.Map{
-			"message": "File is not an image",
-		})
-	}
-
-	src, err := file.Open()
-	if err != nil {
-		c.Status(fiber.StatusInternalServerError)
-		return c.JSON(fiber.Map{
-			"message": "Error opening file",
-		})
-	}
-	defer src.Close()
-
-	// Decode the image from the file
-	var img image.Image
-	var decodeErr error
-	if file.Header.Get("Content-Type") == "image/jpeg" {
-		img, decodeErr = jpeg.Decode(src)
-	} else if file.Header.Get("Content-Type") == "image/png" {
-		img, decodeErr = png.Decode(src)
-	} else {
-		c.Status(fiber.StatusBadRequest)
-		return c.JSON(fiber.Map{
-			"message": "Unrecognized / unsupported format",
-		})
-	}
-	if decodeErr != nil {
-		c.Status(fiber.StatusInternalServerError)
-		return c.JSON(fiber.Map{
-			"message": "Internal error",
-		})
-	}
-
-	img = resize.Resize(64, 64, img, resize.Lanczos2)
-	buf := &bytes.Buffer{}
-	if err := jpeg.Encode(buf, img, nil); err != nil {
-		c.Status(fiber.StatusInternalServerError)
-		return c.JSON(fiber.Map{
-			"message": "Internal error",
-		})
-	}
-
-	uid, err := helpers.DecodeTokenAndGetUID(c)
-	if err != nil {
-		c.Status(fiber.StatusNotFound)
-		return c.JSON(fiber.Map{
-			"message": "Your session could not be found",
-		})
-	}
-
-	count, err := db.PfpCollection.CountDocuments(c.Context(), bson.M{"_id": uid})
-	if count != 0 {
-		db.PfpCollection.UpdateByID(c.Context(), uid, models.Pfp{
-			Binary: primitive.Binary{Data: buf.Bytes()},
-		})
-	} else {
-		db.PfpCollection.InsertOne(c.Context(), models.Pfp{
-			ID:     uid,
-			Binary: primitive.Binary{Data: buf.Bytes()},
-		})
-	}
-
-	//clear the buffer. garbage collection does this automatically but this might be a little faster
-	buf = nil
-
-	c.Status(fiber.StatusOK)
-	return c.JSON(fiber.Map{
-		"message": "Updated pfp",
-	})
 }
 
 func GetUser(c *fiber.Ctx) error {

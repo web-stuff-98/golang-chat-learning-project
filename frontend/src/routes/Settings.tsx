@@ -62,6 +62,7 @@ export default function Settings() {
         accept=".jpeg,.jpg,.png"
       />
       <User
+        uid={user?.ID!}
         user={
           {
             ...user,

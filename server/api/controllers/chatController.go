@@ -103,8 +103,7 @@ func SetupChatServer() (*ChatServer, chan string, error) {
 				if conn != nil {
 					for connI := range chatServer.chatRooms[i].connections {
 						if conn != connI && connI != nil {
-							println("Send msg : ", msg.Content)
-							connI.WriteJSON(msg.Content)
+							connI.WriteJSON(msg)
 						}
 					}
 				}

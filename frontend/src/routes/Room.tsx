@@ -7,6 +7,8 @@ import { getRoom, joinRoom, leaveRoom } from "../services/rooms";
 import { useNavigate, useParams } from "react-router-dom";
 import ResMsg, { IResMsg } from "../components/ResMsg";
 import { useAuth } from "../context/AuthContext";
+import { useUsers } from "../context/UsersContext";
+import User from "../components/User";
 
 export interface IMsg {
   content: string;
@@ -18,7 +20,8 @@ export default function Room() {
   const { socket } = useSocket();
   const { id } = useParams();
   const { user } = useAuth();
-  const navigate = useNavigate()
+  const { updateUserData, getUserData, cacheUserData } = useUsers();
+  const navigate = useNavigate();
 
   const [joined, setJoined] = useState(false);
   const [messageInput, setMessageInput] = useState("");
@@ -42,8 +45,9 @@ export default function Room() {
     if (!joined) {
       joinRoom(id as string)
         .then((room) => {
-          setMessages(room.messages)
+          setMessages(room.messages);
           setJoined(true);
+          room.messages.forEach((msg: IMsg) => cacheUserData(msg.uid));
         })
         .catch((e) => setResMsg({ msg: `${e}`, err: true, pen: false }));
     }
@@ -57,8 +61,17 @@ export default function Room() {
   useEffect(() => {
     if (!socket) return;
     socket.onmessage = (e) => {
-      setMessages((old) => [...old, e.data]);
-      console.log("Received message : " + e.data);
+      console.log(e.data);
+      //if theres no "msg" in message event that means its not actually a message from the chat server, it's user update data
+      if (!Object.keys(e.data).includes("msg")) {
+        updateUserData(e.data);
+      } else {
+        cacheUserData(e.data.uid);
+        setMessages((old) => [
+          ...old,
+          { ...e.data, timestamp: new Date().toISOString() },
+        ]);
+      }
     };
   }, [socket]);
 
@@ -67,6 +80,7 @@ export default function Room() {
       <div className={classes.messages}>
         {messages.map((msg) => (
           <div className={classes.message}>
+            <User uid={msg.uid} user={getUserData(msg.uid)} />
             <div className={classes.messageContent}>{msg.content}</div>
           </div>
         ))}
@@ -80,7 +94,13 @@ export default function Room() {
         />
         <button type="submit">Send</button>
       </form>
-      <button className={classes.backButton} onClick={() => navigate("/room/list")} type="button">Back</button>
+      <button
+        className={classes.backButton}
+        onClick={() => navigate("/room/list")}
+        type="button"
+      >
+        Back
+      </button>
       <ResMsg resMsg={resMsg} />
     </div>
   );

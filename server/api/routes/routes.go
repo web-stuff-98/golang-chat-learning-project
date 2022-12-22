@@ -10,7 +10,7 @@ func Setup(app *fiber.App, chatServer *controllers.ChatServer, closeWsChan chan 
 	app.Post("/api/login", controllers.Login)
 	app.Post("/api/welcome", controllers.Welcome)
 	app.Post("/api/register", controllers.Register)
-	app.Post("/api/updatepfp", controllers.UpdatePfp)
+	app.Post("/api/updatepfp", controllers.UpdatePfp(chatServer))
 	app.Post("/api/refresh", controllers.Refresh(closeWsChan))
 	app.Post("/api/logout", controllers.Logout(closeWsChan))
 	app.Get("/api/user/:id", controllers.GetUser)
