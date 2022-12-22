@@ -51,6 +51,7 @@ export const InterfaceProvider = ({ children }: { children: ReactNode }) => {
     if (
       location.pathname === "/login" ||
       location.pathname === "/register" ||
+      location.pathname === "/settings" ||
       location.pathname.includes("/room/") ||
       location.pathname === "/"
     ) {

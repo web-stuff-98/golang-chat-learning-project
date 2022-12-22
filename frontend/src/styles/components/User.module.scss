@@ -1,0 +1,27 @@
+.container {
+    display: flex;
+    align-items: center;
+    line-height: 1;
+    gap: var(--padding-medium);
+
+    .pfp {
+        width: 1.5rem;
+        height: 1.5rem;
+        min-width: 1.5rem;
+        min-height: 1.5rem;
+        border-radius: 100%;
+        background: transparent;
+        border: 1px solid var(--base-medium);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-size: cover;
+        background-position: center;
+
+        cursor: pointer;
+
+        .pfpIcon {
+            color: var(--text-color);
+        }
+    }
+}

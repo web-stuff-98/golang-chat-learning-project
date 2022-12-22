@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import { useSocket } from "../context/SocketContext";
 import { getRoom, joinRoom, leaveRoom } from "../services/rooms";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import ResMsg, { IResMsg } from "../components/ResMsg";
 import { useAuth } from "../context/AuthContext";
 
@@ -18,6 +18,7 @@ export default function Room() {
   const { socket } = useSocket();
   const { id } = useParams();
   const { user } = useAuth();
+  const navigate = useNavigate()
 
   const [joined, setJoined] = useState(false);
   const [messageInput, setMessageInput] = useState("");
@@ -79,6 +80,7 @@ export default function Room() {
         />
         <button type="submit">Send</button>
       </form>
+      <button className={classes.backButton} onClick={() => navigate("/room/list")} type="button">Back</button>
       <ResMsg resMsg={resMsg} />
     </div>
   );

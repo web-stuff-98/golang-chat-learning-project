@@ -32,7 +32,7 @@ export default function Layout() {
                 background:"var(--foreground)",
                 border: "1px solid var(--base-medium)",
                 borderRadius: "var(--border-radius)",
-                margin:"auto"
+                margin:"auto",
             }
             return properties
         }

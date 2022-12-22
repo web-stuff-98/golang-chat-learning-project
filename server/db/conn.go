@@ -14,6 +14,7 @@ var MongoClient *mongo.Client
 var DB *mongo.Database
 
 var UserCollection *mongo.Collection
+var PfpCollection *mongo.Collection
 var SessionCollection *mongo.Collection
 var RoomCollection *mongo.Collection
 
@@ -35,6 +36,7 @@ func Connect() {
 	DB = client.Database("session-cookie-go")
 
 	UserCollection = DB.Collection("users")
+	PfpCollection = DB.Collection("pfps")
 	SessionCollection = DB.Collection("sessions")
 	RoomCollection = DB.Collection("rooms")
 }

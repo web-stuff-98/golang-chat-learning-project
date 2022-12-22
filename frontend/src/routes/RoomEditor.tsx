@@ -1,6 +1,6 @@
 import classes from "../styles/pages/RoomEditor.module.scss";
 import formClasses from "../styles/FormClasses.module.scss";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 
 import { useRef, useState } from "react";
 import type { FormEvent, ChangeEvent } from "react";
@@ -9,6 +9,7 @@ import ResMsg, { IResMsg } from "../components/ResMsg";
 
 export default function RoomEditor() {
   const { id } = useParams();
+  const navigate = useNavigate()
 
   const [nameInput, setNameInput] = useState("");
   //const [imageBase64, setImageBase64] = useState("");
@@ -58,6 +59,7 @@ export default function RoomEditor() {
         />
       </div>
       <button type="submit">{id ? "Update room" : "Create room"}</button>
+      <button onClick={() => navigate("/room/menu")} type="button">Back</button>
       <ResMsg resMsg={resMsg} />
     </form>
   );

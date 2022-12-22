@@ -10,6 +10,7 @@ import RoomEditor from "./routes/RoomEditor";
 import RoomMenu from "./routes/RoomMenu";
 import RoomList from "./routes/RoomList";
 import Room from "./routes/Room";
+import Settings from "./routes/Settings";
 
 const root = ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement
@@ -21,6 +22,7 @@ root.render(
           <Route index element={<Home />} />
           <Route path="login" element={<Login />} />
           <Route path="register" element={<Register />} />
+          <Route path="settings" element={<Settings />} />
           <Route path="room/edit" element={<RoomEditor />} />
           <Route path="room/menu" element={<RoomMenu />} />
           <Route path="room/list" element={<RoomList />} />

@@ -1,12 +1,19 @@
 package controllers
 
 import (
+	"bytes"
 	"cookie-session/api/helpers"
 	"cookie-session/api/validator"
 	"cookie-session/db"
 	"cookie-session/db/models"
 	"fmt"
+	"image"
+	"image/jpeg"
+	"image/png"
+	"strings"
 	"time"
+
+	"github.com/nfnt/resize"
 
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/bson"
@@ -285,4 +292,104 @@ func Refresh(closeWsChan chan string) fiber.Handler {
 			"_id":      user["_id"],
 		})
 	}
+}
+
+const maxPfpSize = 20 * 1024 * 1024 //20mb
+
+func UpdatePfp(c *fiber.Ctx) error {
+	file, err := c.FormFile("file")
+	if err != nil {
+		c.Status(fiber.StatusBadRequest)
+		return c.JSON(fiber.Map{
+			"message": err,
+		})
+	}
+
+	if file.Size > maxPfpSize {
+		c.Status(fiber.StatusBadRequest)
+		return c.JSON(fiber.Map{
+			"message": "File too large. Max 20mb.",
+		})
+	}
+
+	if !strings.HasPrefix(file.Header.Get("Content-Type"), "image/") {
+		c.Status(fiber.StatusBadRequest)
+		return c.JSON(fiber.Map{
+			"message": "File is not an image",
+		})
+	}
+
+	src, err := file.Open()
+	if err != nil {
+		c.Status(fiber.StatusInternalServerError)
+		return c.JSON(fiber.Map{
+			"message": "Error opening file",
+		})
+	}
+	defer src.Close()
+
+	// Decode the image from the file
+	var img image.Image
+	var decodeErr error
+	if file.Header.Get("Content-Type") == "image/jpeg" {
+		img, decodeErr = jpeg.Decode(src)
+	} else if file.Header.Get("Content-Type") == "image/png" {
+		img, decodeErr = png.Decode(src)
+	} else {
+		c.Status(fiber.StatusBadRequest)
+		return c.JSON(fiber.Map{
+			"message": "Unrecognized / unsupported format",
+		})
+	}
+	if decodeErr != nil {
+		c.Status(fiber.StatusInternalServerError)
+		return c.JSON(fiber.Map{
+			"message": "Internal error",
+		})
+	}
+
+	img = resize.Resize(64, 64, img, resize.Lanczos2)
+	buf := &bytes.Buffer{}
+	if err := jpeg.Encode(buf, img, nil); err != nil {
+		c.Status(fiber.StatusInternalServerError)
+		return c.JSON(fiber.Map{
+			"message": "Internal error",
+		})
+	}
+
+	uid, err := helpers.DecodeTokenAndGetUID(c)
+	if err != nil {
+		c.Status(fiber.StatusNotFound)
+		return c.JSON(fiber.Map{
+			"message": "Your session could not be found",
+		})
+	}
+
+	count, err := db.PfpCollection.CountDocuments(c.Context(), bson.M{"_id": uid})
+	if count != 0 {
+		db.PfpCollection.UpdateByID(c.Context(), uid, models.Pfp{
+			Binary: primitive.Binary{Data: buf.Bytes()},
+		})
+	} else {
+		db.PfpCollection.InsertOne(c.Context(), models.Pfp{
+			ID:     uid,
+			Binary: primitive.Binary{Data: buf.Bytes()},
+		})
+	}
+
+	//clear the buffer. garbage collection does this automatically but this might be a little faster
+	buf = nil
+
+	c.Status(fiber.StatusOK)
+	return c.JSON(fiber.Map{
+		"message": "Updated pfp",
+	})
+}
+
+func GetUser(c *fiber.Ctx) error {
+
+	c.Status(fiber.StatusOK)
+	return c.JSON(fiber.Map{
+		"message": "Updated pfp",
+	})
 }

@@ -33,8 +33,11 @@ export default function Nav() {
           >
             <span>Logout</span>
           </button>
-          <Link to="/room/menu">
+            <Link to="/room/menu">
               <span>Rooms</span>
+            </Link>
+            <Link to="/settings">
+              <span>Settings</span>
             </Link>
           </>
         )}

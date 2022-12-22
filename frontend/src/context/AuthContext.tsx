@@ -5,6 +5,7 @@ import { makeRequest } from "../services/makeRequest";
 export interface IUser {
   ID: string;
   username: string;
+  base64pfp?: string;
 }
 
 const AuthContext = createContext<{
@@ -12,7 +13,14 @@ const AuthContext = createContext<{
   login: (username: string, password: string) => void;
   logout: () => void;
   register: (username: string, password: string) => void;
-}>({ user: undefined, login: () => {}, register: () => {}, logout: () => {} });
+  updateUserState: (user: Partial<IUser>) => void;
+}>({
+  user: undefined,
+  login: () => {},
+  register: () => {},
+  logout: () => {},
+  updateUserState: () => {},
+});
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<IUser>();
@@ -52,12 +60,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       makeRequest("/api/refresh", {
         withCredentials: true,
         method: "POST",
-      }).then((data) => {
-        setUser(data)
-      }).catch((e) => {
-        console.warn(e)
-      });
-    };
+      })
+        .then((data) => {
+          setUser(data);
+        })
+        .catch((e) => {
+          console.warn(e);
+        });
+    }
     const i = setInterval(async () => {
       try {
         await makeRequest("/api/refresh", {
@@ -75,8 +85,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, [user]);
 
+  const updateUserState = (user: Partial<IUser>) =>
+    setUser((old) => {
+      return { ...old, ...user } as IUser;
+    });
+
   return (
-    <AuthContext.Provider value={{ user, login, register, logout }}>
+    <AuthContext.Provider
+      value={{ user, login, register, logout, updateUserState }}
+    >
       {children}
     </AuthContext.Provider>
   );

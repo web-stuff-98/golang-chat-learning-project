@@ -13,8 +13,13 @@
     width: calc(100% - var(--padding) * 2);
     border-radius: var(--border-radius-medium);
     padding: var(--padding);
+    overflow-y: auto;
+    overflow-x: hidden;
+    max-height: 15rem;
+    height: 15rem;
 
     .message {
+      box-sizing: border-box;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -36,5 +41,10 @@
   form {
     display: flex;
     gap: var(--padding);
+  }
+
+  .backButton {
+    margin-top: var(--padding-medium);
+    width: 100%;
   }
 }

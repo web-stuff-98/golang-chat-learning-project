@@ -149,7 +149,7 @@ func HandleWsConn(chatServer *ChatServer, closeWsChan chan string) func(*fiber.C
 			}
 			if !foundRoom {
 				//if the room is not found, that means there are no active connections,
-				//but the room is there in the database. So go look for it and create the chatServer application data
+				//but the room is there in the database. So go look for it and add it to memory
 				connections := make(map[*websocket.Conn]bool)
 				connectionsByUid := make(map[string]*websocket.Conn)
 				connections[conn] = true

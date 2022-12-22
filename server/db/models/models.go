@@ -8,6 +8,11 @@ type User struct {
 	Password string             `bson:"password" json:"-"`
 }
 
+type Pfp struct {
+	ID     primitive.ObjectID `bson:"_id, omitempty"` //id should be the same id as the uid
+	Binary primitive.Binary   `bson:"binary"`
+}
+
 type Session struct {
 	UID       primitive.ObjectID `bson:"_uid"`
 	ExpiresAt primitive.DateTime `bson:"exp"`
