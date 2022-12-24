@@ -449,8 +449,6 @@ func JoinRoom(chatServer *ChatServer) func(*fiber.Ctx) error {
 
 		chatServer.registerRoomConn <- ChatRoomConnectionRegistration{id: c.Params("id"), uid: uid.Hex()}
 
-		fmt.Println("Room ID : ", room.ID)
-
 		c.Status(fiber.StatusOK)
 		return c.JSON(room)
 	}

@@ -29,10 +29,12 @@ export default function Layout() {
             const properties:CSSProperties = {
                 width: "fit-content",
                 height:"fit-content",
+                maxWidth:"min(16.66rem, calc(100vw - 0.5rem))",
                 background:"var(--foreground)",
                 border: "1px solid var(--base-medium)",
                 borderRadius: "var(--border-radius)",
                 margin:"auto",
+                boxShadow:"2px 2px 3px rgba(0,0,0,0.066)"
             }
             return properties
         }

@@ -1,8 +1,14 @@
+@font-face {
+  font-family: "Coolvetica";
+  src: url(../public/coolvetica.rg-regular.otf);
+}
+
 body {
   padding: 0;
   margin: 0;
   display: flex;
   flex-direction: column;
+  font-family: "Coolvetica";
 }
 
 code {
@@ -11,14 +17,25 @@ code {
 }
 
 input, button {
-  border-radius: var(--border-radius-small);
-  border: none;
-  outline: 1px solid var(--base-medium);
+  border-radius: var(--border-radius-medium);
+  border: 1px solid var(--base-medium);
+}
+input {
+  outline: none;
+  margin: 0;
+}
+button {
+  cursor: pointer;
 }
 
 * {
   color: var(--text-color);
   font-size: var(--font-sm);
+  font-family: "Coolvetica";
+}
+
+h1 {
+  font-size: var(--font-lg);
 }
 
 :root {
@@ -52,12 +69,12 @@ input, button {
   --border-radius-small: 0.075rem;
 
   /* Padding/Margin */
-  --padding: 0.25rem;
-  --padding-medium: 0.125rem;
-  --padding-small: 0.1rem;
+  --padding: 4px;
+  --padding-medium: 3px;
+  --padding-small: 2px;
 
   /* Whitespace & Dimensions */
-  --horizontal-whitespace: 33.33%;
+  --horizontal-whitespace: 27.5vw;
 
   /* Font sizes */
   --font-lg: 1.5rem;

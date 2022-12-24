@@ -6,14 +6,23 @@ import classes from "../styles/components/User.module.scss";
 import { AiOutlineUser } from "react-icons/ai";
 import { useUsers } from "../context/UsersContext";
 
+const dateFormatter = new Intl.DateTimeFormat(undefined, {
+  dateStyle: "short",
+  timeStyle: "short",
+});
+
 export default function User({
   user = { username: "Username", ID: "123" },
   uid = "",
   onClick = undefined,
+  date,
+  reverse,
 }: {
   user?: IUser;
   uid: string;
   onClick?: () => void;
+  date?: Date;
+  reverse?: boolean;
 }) {
   const { userEnteredView, cacheUserData, userLeftView } = useUsers();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -35,8 +44,27 @@ export default function User({
     };
   }, [containerRef.current]);
 
+  const getDateString = (date: Date) => dateFormatter.format(date);
+  const renderDateTime = (dateString: string) => {
+    return (
+      <div
+        style={
+          reverse ? { alignItems: "flex-end", textAlign: "right" } : {}
+        }
+        className={classes.dateTime}
+      >
+        <span>{dateString.split(", ")[0]}</span>
+        <span>{dateString.split(", ")[1]}</span>
+      </div>
+    );
+  };
+
   return (
-    <div ref={containerRef} className={classes.container}>
+    <div
+      style={reverse ? { flexDirection: "row-reverse" } : {}}
+      ref={containerRef}
+      className={classes.container}
+    >
       {user && (
         <>
           <span
@@ -53,7 +81,13 @@ export default function User({
           >
             {!user.base64pfp && <AiOutlineUser className={classes.pfpIcon} />}
           </span>
-          {user.username}
+          <div
+            style={reverse ? { textAlign: "right", alignItems:"flex-end" } : {}}
+            className={classes.text}
+          >
+            <div className={classes.name}>{user.username}</div>
+            {date && renderDateTime(getDateString(date))}
+          </div>
         </>
       )}
     </div>

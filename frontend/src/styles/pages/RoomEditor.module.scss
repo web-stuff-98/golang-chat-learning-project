@@ -1,11 +1,13 @@
 .container {
     display: flex;   
     flex-direction: column;
-    gap:var(--padding);
-    padding:var(--padding);
     align-items: center;
     justify-content: center;
     text-align: center;
+
+    gap:var(--padding);
+    padding:var(--padding-medium);
+
     button {
         width: 100%;
     }

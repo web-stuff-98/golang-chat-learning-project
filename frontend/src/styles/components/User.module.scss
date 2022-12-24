@@ -1,25 +1,42 @@
 .container {
+  display: flex;
+  align-items: center;
+  line-height: 1;
+  gap: var(--padding-medium);
+
+  .pfp {
+    width: 2.366rem;
+    height: 2.366rem;
+    min-width: 2.366rem;
+    min-height: 2.366rem;
+    border-radius: 100%;
+    border: 1px solid var(--base-medium);
     display: flex;
     align-items: center;
-    line-height: 1;
-    gap: var(--padding-medium);
+    justify-content: center;
+    background-size: cover;
+    background-position: center;
 
-    .pfp {
-        width: 1.5rem;
-        height: 1.5rem;
-        min-width: 1.5rem;
-        min-height: 1.5rem;
-        border-radius: 100%;
-        background: transparent;
-        border: 1px solid var(--base-medium);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background-size: cover;
-        background-position: center;
-        
-        .pfpIcon {
-            color: var(--text-color);
-        }
+    .pfpIcon {
+      color: var(--text-color);
     }
+  }
+
+  .text {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    text-align: left;
+    .dateTime {
+      text-align: left;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      span {
+        font-size: 0.725rem;
+        line-height: 0.866;
+      }
+    }
+  }
 }

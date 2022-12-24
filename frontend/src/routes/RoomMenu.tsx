@@ -8,7 +8,7 @@ export default function RoomMenu() {
     <div className={classes.container}>
       {<button onClick={() => navigate("/room/list")}>All rooms</button>}
       {<button onClick={() => navigate("/room/list?own=true")}>Your rooms</button>}
-      {<button onClick={() => navigate("/room/edit")}>Create room</button>}
+      {<button onClick={() => navigate("/room/edit")}>Create</button>}
     </div>
   );
 }

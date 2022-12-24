@@ -59,6 +59,7 @@ export default function RoomEditor() {
         />
       </div>
       <button type="submit">{id ? "Update room" : "Create room"}</button>
+      <button type="button"></button>
       <button onClick={() => navigate("/room/menu")} type="button">Back</button>
       <ResMsg resMsg={resMsg} />
     </form>

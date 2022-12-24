@@ -23,10 +23,10 @@ export default function RoomList() {
 
   const getRoomList = async () => {
     try {
-      setResMsg({ msg: "", err: false, pen: true });
+      setResMsg({ msg: "Loading rooms...", err: false, pen: true });
       const data = await getRooms(searchParams.get("own") ? true : false);
       setRooms(data ?? []);
-      setResMsg({ msg: "", err: false, pen: false });
+      setResMsg({ msg: data ? "" : "You have no rooms", err: false, pen: false });
     } catch (e) {
       setResMsg({ msg: `${e}`, err: true, pen: false });
     }
@@ -39,6 +39,7 @@ export default function RoomList() {
   return (
     <div className={classes.container}>
       <div className={classes.rooms}>
+        <ResMsg resMsg={resMsg}/>
         {rooms.map((room: any) => (
           <div className={classes.room}>
             <h3>{room.name}</h3>
@@ -49,7 +50,6 @@ export default function RoomList() {
       <button className={classes.back} aria-label="Back" onClick={() => navigate("/room/menu")}>
         Back
       </button>
-      <ResMsg resMsg={resMsg} />
     </div>
   );
 }

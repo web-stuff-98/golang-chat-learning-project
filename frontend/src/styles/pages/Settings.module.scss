@@ -1,5 +1,25 @@
 .container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    text-align: center;
+    padding: var(--padding);
+
+    h1 {
+        padding: 0;
+        margin: 0;
+        margin-bottom: var(--padding-medium);
+    }
+
     input {
         display: none;
+    }
+
+    p {
+        max-width: 10rem;
+        margin: 0;
+        padding: var(--padding);
+        line-height: 1;
     }
 }

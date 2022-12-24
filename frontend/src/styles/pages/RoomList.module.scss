@@ -14,7 +14,7 @@
     .room {
       box-sizing: border-box;
       width: 100%;
-      outline: 1px solid var(--base-light);
+      border: 1px solid var(--base-light);
       padding: var(--padding);
       gap: calc(2 * var(--padding));
       border-radius: var(--border-radius-medium);
@@ -23,11 +23,15 @@
       justify-content: space-between;
 
       h3 {
-        font-size: var(--font-md);
+        font-size: var(--font-sm);
         font-weight: 300;
         margin: 0;
         padding: 0;
-        line-height: 1s;
+        line-height: 1;
+      }
+
+      svg {
+        font-size: var(--font-xs);
       }
     }
   }

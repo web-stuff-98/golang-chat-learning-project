@@ -9,6 +9,7 @@ import ResMsg, { IResMsg } from "../components/ResMsg";
 import { useAuth } from "../context/AuthContext";
 import { useUsers } from "../context/UsersContext";
 import User from "../components/User";
+import Message from "../components/Message";
 
 export interface IMsg {
   content: string;
@@ -78,12 +79,9 @@ export default function Room() {
   return (
     <div className={classes.container}>
       <div className={classes.messages}>
-        {messages.map((msg) => (
-          <div className={classes.message}>
-            <User uid={msg.uid} user={getUserData(msg.uid)} />
-            <div className={classes.messageContent}>{msg.content}</div>
-          </div>
-        ))}
+        {(messages && messages.length && !resMsg.pen) ? messages.map((msg) => (
+          <Message msg={msg} reverse={msg.uid !== user?.ID}/>
+        )) : <p className={classes.roomHasNoMessages}>This room has received no messages.</p>}
       </div>
       <form onSubmit={handleSubmit}>
         <input

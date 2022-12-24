@@ -12,24 +12,33 @@
     border: 1px solid var(--base-medium);
     width: calc(100% - var(--padding) * 2);
     border-radius: var(--border-radius-medium);
-    padding: var(--padding);
     overflow-y: auto;
     overflow-x: hidden;
     max-height: 15rem;
     height: 15rem;
+    width: 100%;
+
+    .roomHasNoMessages {
+      text-align: center;
+      margin: auto;
+      padding: var(--padding);
+    }
 
     .message {
-      box-sizing: border-box;
       display: flex;
       align-items: center;
       justify-content: space-between;
       padding: var(--padding-small);
       width: 100%;
       text-align: left;
-      border-bottom: 1px dashed var(--base-light);
+      padding: var(--padding-medium);
+      box-sizing: border-box;
 
       .messageContent {
         font-size: var(--font-xs);
+        line-height: 1;
+        padding: 0 var(--padding);
+        flex-grow: 1;
       }
     }
 
@@ -41,10 +50,13 @@
   form {
     display: flex;
     gap: var(--padding);
+    width: 100%;
+    input {
+      flex-grow: 1;
+    }
   }
 
   .backButton {
-    margin-top: var(--padding-medium);
     width: 100%;
   }
 }
