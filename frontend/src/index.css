@@ -77,8 +77,8 @@ h1 {
   --horizontal-whitespace: 27.5vw;
 
   /* Font sizes */
-  --font-lg: 1.5rem;
-  --font-md: 1rem;
+  --font-lg: 1.666rem;
+  --font-md: 1.125rem;
   --font-sm: 0.866rem;
-  --font-xs: 0.75rem;
+  --font-xs: 0.775rem;
 }

@@ -27,12 +27,18 @@ type Message struct {
 }
 
 type Room struct {
-	ID        primitive.ObjectID `bson:"_id,omitempty"` // omitempty to protect against zeroed _id insertion
-	Name      string             `bson:"name" json:"name"`
-	Author    primitive.ObjectID `bson:"author_id" json:"author_id"`
-	CreatedAt primitive.DateTime `bson:"created_at" json:"created_at"`
-	UpdatedAt primitive.DateTime `bson:"updated_at" json:"updated_at"`
-	Messages  []Message          `bson:"messages" json:"messages"`
+	ID          primitive.ObjectID `bson:"_id,omitempty"` // omitempty to protect against zeroed _id insertion
+	Name        string             `bson:"name" json:"name"`
+	Author      primitive.ObjectID `bson:"author_id" json:"author_id"`
+	CreatedAt   primitive.DateTime `bson:"created_at" json:"created_at"`
+	UpdatedAt   primitive.DateTime `bson:"updated_at" json:"updated_at"`
+	Messages    []Message          `bson:"messages" json:"messages"`
+	Base64image string             `bson:"-" json:"base64image,omitempty"`
+}
+
+type RoomImage struct {
+	ID     primitive.ObjectID `bson:"_id, omitempty"` //should be the same as the rooms id
+	Binary primitive.Binary   `bson:"binary"`
 }
 
 //this is for the socket event when a user updates their profile

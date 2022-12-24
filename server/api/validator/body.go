@@ -6,5 +6,5 @@ type Credentials struct {
 }
 
 type Room struct {
-	Name string `json:"name"`
+	Name string `json:"name" validate:"required"`
 }

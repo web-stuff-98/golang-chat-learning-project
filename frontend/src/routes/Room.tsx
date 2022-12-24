@@ -10,6 +10,7 @@ import { useAuth } from "../context/AuthContext";
 import { useUsers } from "../context/UsersContext";
 import User from "../components/User";
 import Message from "../components/Message";
+import { useRooms } from "../context/RoomsContext";
 
 export interface IMsg {
   content: string;
@@ -21,7 +22,8 @@ export default function Room() {
   const { socket } = useSocket();
   const { id } = useParams();
   const { user } = useAuth();
-  const { updateUserData, getUserData, cacheUserData } = useUsers();
+  const { updateRoomData } = useRooms();
+  const { updateUserData, cacheUserData } = useUsers();
   const navigate = useNavigate();
 
   const [joined, setJoined] = useState(false);
@@ -63,10 +65,7 @@ export default function Room() {
     if (!socket) return;
     socket.onmessage = (e) => {
       console.log(e.data);
-      //if theres no "msg" in message event that means its not actually a message from the chat server, it's user update data
-      if (!Object.keys(e.data).includes("msg")) {
-        updateUserData(e.data);
-      } else {
+      if (!Object.keys(e.data).includes("event_type")) { //if no event_type, then its a normal room message, so don't ignore it
         cacheUserData(e.data.uid);
         setMessages((old) => [
           ...old,
@@ -79,9 +78,15 @@ export default function Room() {
   return (
     <div className={classes.container}>
       <div className={classes.messages}>
-        {(messages && messages.length && !resMsg.pen) ? messages.map((msg) => (
-          <Message msg={msg} reverse={msg.uid !== user?.ID}/>
-        )) : <p className={classes.roomHasNoMessages}>This room has received no messages.</p>}
+        {messages && messages.length && !resMsg.pen ? (
+          messages.map((msg) => (
+            <Message msg={msg} reverse={msg.uid !== user?.ID} />
+          ))
+        ) : (
+          <p className={classes.roomHasNoMessages}>
+            This room has received no messages.
+          </p>
+        )}
       </div>
       <form onSubmit={handleSubmit}>
         <input

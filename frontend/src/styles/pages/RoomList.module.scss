@@ -12,6 +12,8 @@
     gap: var(--padding);
 
     .room {
+      background-position: center;
+      background-size: cover;
       box-sizing: border-box;
       width: 100%;
       border: 1px solid var(--base-light);
@@ -30,8 +32,10 @@
         line-height: 1;
       }
 
-      svg {
-        font-size: var(--font-xs);
+      .icons {
+        display: flex;
+        align-content: center;
+        justify-content: center;
       }
     }
   }

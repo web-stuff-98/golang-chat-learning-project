@@ -17,6 +17,7 @@ var UserCollection *mongo.Collection
 var PfpCollection *mongo.Collection
 var SessionCollection *mongo.Collection
 var RoomCollection *mongo.Collection
+var RoomImageCollection *mongo.Collection
 
 func Connect() {
 	client, err := mongo.NewClient(options.Client().ApplyURI("mongodb://localhost:27017"))
@@ -39,4 +40,5 @@ func Connect() {
 	PfpCollection = DB.Collection("pfps")
 	SessionCollection = DB.Collection("sessions")
 	RoomCollection = DB.Collection("rooms")
+	RoomImageCollection = DB.Collection("roompics")
 }

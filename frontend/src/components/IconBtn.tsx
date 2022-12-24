@@ -33,7 +33,10 @@ const IconBtn = ({
     className={classes.container}
     onClick={() => onClick()}
   >
-    <Icon className={classes.icon} />
+    <Icon
+      style={style && style.color ? { fill: style.color } : {}}
+      className={classes.icon}
+    />
     {children && children}
   </button>
 );

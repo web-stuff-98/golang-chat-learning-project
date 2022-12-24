@@ -24,6 +24,7 @@ root.render(
           <Route path="register" element={<Register />} />
           <Route path="settings" element={<Settings />} />
           <Route path="room/edit" element={<RoomEditor />} />
+          <Route path="room/edit/:id" element={<RoomEditor />} />
           <Route path="room/menu" element={<RoomMenu />} />
           <Route path="room/list" element={<RoomList />} />
           <Route path="room/:id" element={<Room />} />

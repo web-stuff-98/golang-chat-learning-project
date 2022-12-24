@@ -15,6 +15,23 @@ const createRoom = (data: { name: string }) =>
     data,
   });
 
+const updateRoom = (id: string, data: { name: string }) =>
+  makeRequest(`/api/room/${id}`, {
+    method: "PATCH",
+    data,
+    withCredentials:true
+  });
+
+const uploadRoomImage = (id:string, file: File) => {
+  const formData = new FormData();
+  formData.append("file", file);
+  return makeRequest(`/api/room/${id}/image`, {
+    withCredentials: true,
+    method: "POST",
+    data: formData,
+  });
+};
+
 const joinRoom = (id: string) =>
   makeRequest(`/api/room/${id}/join`, {
     method: "POST",
@@ -27,10 +44,4 @@ const leaveRoom = (id: string) =>
     withCredentials: true,
   });
 
-const updateRoom = (id: string, data: { name: string }) =>
-  makeRequest(`/api/rooms/${id}`, {
-    method: "PATCH",
-    data,
-  });
-
-export { getRoom, getRooms, createRoom, updateRoom, joinRoom, leaveRoom };
+export { getRoom, getRooms, createRoom, updateRoom, joinRoom, leaveRoom, uploadRoomImage };

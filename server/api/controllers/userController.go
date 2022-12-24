@@ -336,7 +336,6 @@ func UpdatePfp(chatServer *ChatServer) func(*fiber.Ctx) error {
 		}
 		defer src.Close()
 
-		// Decode the image from the file
 		var img image.Image
 		var decodeErr error
 		if file.Header.Get("Content-Type") == "image/jpeg" {
@@ -356,7 +355,7 @@ func UpdatePfp(chatServer *ChatServer) func(*fiber.Ctx) error {
 			})
 		}
 
-		img = resize.Resize(64, 64, img, resize.Lanczos2)
+		img = resize.Resize(64, 0, img, resize.Lanczos2)
 		buf := &bytes.Buffer{}
 		if err := jpeg.Encode(buf, img, nil); err != nil {
 			c.Status(fiber.StatusInternalServerError)
@@ -390,8 +389,9 @@ func UpdatePfp(chatServer *ChatServer) func(*fiber.Ctx) error {
 			for conn := range chatServer.chatRooms[i].connections {
 				if conn.Locals("uid").(primitive.ObjectID) != uid {
 					conn.WriteJSON(fiber.Map{
-						"ID":        uid.Hex(),
-						"base64pfp": "data:image/jpeg;base64," + base64.StdEncoding.EncodeToString(buf.Bytes()),
+						"ID":         uid.Hex(),
+						"base64pfp":  "data:image/jpeg;base64," + base64.StdEncoding.EncodeToString(buf.Bytes()),
+						"event_type": "pfp_update",
 					})
 				}
 			}

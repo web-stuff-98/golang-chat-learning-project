@@ -8,7 +8,19 @@
     gap:var(--padding);
     padding:var(--padding-medium);
 
+    input {
+        text-align: center;
+    }
+
     button {
         width: 100%;
+    }
+
+    .coverImage {
+        border-radius: var(--border-radius-medium);
+        background-position: center;
+        background-size: cover;
+        width: 100%;
+        height: 2rem;
     }
 }

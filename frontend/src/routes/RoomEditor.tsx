@@ -2,23 +2,33 @@ import classes from "../styles/pages/RoomEditor.module.scss";
 import formClasses from "../styles/FormClasses.module.scss";
 import { useNavigate, useParams } from "react-router-dom";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import type { FormEvent, ChangeEvent } from "react";
-import { createRoom, updateRoom } from "../services/rooms";
+import { createRoom, updateRoom, uploadRoomImage } from "../services/rooms";
 import ResMsg, { IResMsg } from "../components/ResMsg";
+import { useRooms } from "../context/RoomsContext";
 
 export default function RoomEditor() {
   const { id } = useParams();
-  const navigate = useNavigate()
+  const { rooms } = useRooms();
+  const navigate = useNavigate();
 
   const [nameInput, setNameInput] = useState("");
-  //const [imageBase64, setImageBase64] = useState("");
+  const [coverImageB64, setCoverImageB64] = useState("");
+  const [coverImageFile, setCoverImageFile] = useState<File>();
+  const coverImageFileRef = useRef<File>();
 
   const [resMsg, setResMsg] = useState<IResMsg>({
     msg: "",
     err: false,
     pen: false,
   });
+
+  useEffect(() => {
+    if (!id) return;
+    setNameInput(rooms.find((r) => r.ID === id)?.name!);
+    setCoverImageB64(rooms.find((r) => r.ID === id)?.base64image!);
+  }, [id]);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -31,16 +41,37 @@ export default function RoomEditor() {
       const prom = id
         ? updateRoom(id, {
             name: nameInput,
-            //...(imageBase64 ? { imageBase64 } : {}),
           })
         : createRoom({
             name: nameInput,
-            //...(imageBase64 ? { imageBase64 } : {}),
           });
+      const data = await prom;
+      if (coverImageFileRef.current) {
+        await uploadRoomImage(id ?? data.ID, coverImageFileRef.current);
+      }
       setResMsg({ msg: "", err: false, pen: false });
-      await prom;
     } catch (e) {
       setResMsg({ msg: `${e}`, pen: false, err: true });
+    }
+  };
+
+  const handleCoverImage = async (e: ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files) return;
+    if (!e.target.files[0]) return;
+    const file = e.target.files[0];
+    try {
+      const b64 = await new Promise<string>((resolve, reject) => {
+        const fr = new FileReader();
+        fr.readAsDataURL(file);
+        fr.onloadend = () => resolve(fr.result as string);
+        fr.onabort = () => reject();
+        fr.onerror = () => reject();
+      });
+      setCoverImageB64(b64);
+      setCoverImageFile(file);
+      coverImageFileRef.current = file;
+    } catch (e) {
+      setResMsg({ msg: "Image error", err: true, pen: false });
     }
   };
 
@@ -58,9 +89,26 @@ export default function RoomEditor() {
           }
         />
       </div>
+      <input
+        ref={fileInputRef}
+        style={{ display: "none" }}
+        onChange={handleCoverImage}
+        accept=".jpeg,.jpg,.png"
+        type="file"
+      />
+      <button onClick={() => fileInputRef.current?.click()} type="button">
+        Select image
+      </button>
       <button type="submit">{id ? "Update room" : "Create room"}</button>
-      <button type="button"></button>
-      <button onClick={() => navigate("/room/menu")} type="button">Back</button>
+      <button onClick={() => navigate("/room/menu")} type="button">
+        Back
+      </button>
+      {coverImageB64 && (
+        <div
+          style={{ backgroundImage: `url(${coverImageB64})` }}
+          className={classes.coverImage}
+        />
+      )}
       <ResMsg resMsg={resMsg} />
     </form>
   );

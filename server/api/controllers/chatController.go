@@ -1,18 +1,24 @@
 package controllers
 
 import (
+	"bytes"
 	"context"
 	"cookie-session/api/helpers"
 	"cookie-session/api/validator"
 	"cookie-session/db"
 	"cookie-session/db/models"
-	"fmt"
+	"encoding/base64"
+	"image"
+	"image/jpeg"
+	"image/png"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/websocket/v2"
 	"github.com/google/uuid"
+	"github.com/nfnt/resize"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -255,6 +261,21 @@ func GetRooms(c *fiber.Ctx) error {
 		if err != nil {
 			log.Fatal(err)
 		}
+		//find the room image if it has one, and add the base64 to the data
+		found := db.RoomImageCollection.FindOne(c.Context(), bson.M{"_id": elem.ID})
+		if found.Err() != nil {
+			if found.Err() != mongo.ErrNoDocuments {
+				cur.Close(context.TODO())
+				c.Status(fiber.StatusInternalServerError)
+				return c.JSON(fiber.Map{
+					"message": "Internal error",
+				})
+			}
+		} else {
+			var imageDoc models.RoomImage
+			found.Decode(&imageDoc)
+			elem.Base64image = "data:image/jpeg;base64," + base64.StdEncoding.EncodeToString(imageDoc.Binary.Data)
+		}
 		rooms = append(rooms, elem)
 	}
 	if err := cur.Err(); err != nil {
@@ -263,7 +284,6 @@ func GetRooms(c *fiber.Ctx) error {
 	cur.Close(context.TODO())
 
 	c.Status(fiber.StatusOK)
-
 	return c.JSON(rooms)
 }
 
@@ -292,7 +312,19 @@ func GetRoom(c *fiber.Ctx) error {
 		}
 	}
 
-	fmt.Println("Room ID : ", room.ID)
+	var roomImage models.RoomImage
+	found := db.RoomImageCollection.FindOne(c.Context(), bson.M{"_id": c.Params("id")})
+	if found.Err() != nil {
+		if found.Err() != mongo.ErrNoDocuments {
+			c.Status(fiber.StatusInternalServerError)
+			return c.JSON(fiber.Map{
+				"message": "Internal error",
+			})
+		}
+	} else {
+		found.Decode(&roomImage)
+		room.Base64image = "data:image/jpeg;base64," + base64.StdEncoding.EncodeToString(roomImage.Binary.Data)
+	}
 
 	c.Status(fiber.StatusOK)
 	return c.JSON(room)
@@ -332,7 +364,7 @@ func CreateRoom(c *fiber.Ctx) error {
 
 	c.Status(fiber.StatusCreated)
 	return c.JSON(fiber.Map{
-		"_id":        res.InsertedID.(primitive.ObjectID).Hex(),
+		"ID":         res.InsertedID.(primitive.ObjectID).Hex(),
 		"name":       body.Name,
 		"created_at": primitive.NewDateTimeFromTime(time.Now()),
 		"updated_at": primitive.NewDateTimeFromTime(time.Now()),
@@ -340,17 +372,16 @@ func CreateRoom(c *fiber.Ctx) error {
 	})
 }
 
+// Updates the room name only
 func UpdateRoom(c *fiber.Ctx) error {
 	if c.Params("id") == "" {
 		c.Status(fiber.StatusBadRequest)
-		c.JSON(fiber.Map{
+		return c.JSON(fiber.Map{
 			"message": "Bad request",
 		})
 	}
 
-	var body struct {
-		Name string `json:"name"`
-	}
+	var body validator.Room
 
 	if err := c.BodyParser(&body); err != nil {
 		c.Status(fiber.StatusBadRequest)
@@ -359,27 +390,193 @@ func UpdateRoom(c *fiber.Ctx) error {
 		})
 	}
 
-	res, err := db.RoomCollection.UpdateOne(c.Context(), bson.M{"_id": c.Params("id"), "author_id": c.Locals("uid").(primitive.ObjectID).Hex()}, bson.D{{"$set", bson.D{{"name", body.Name}}}})
-
+	uid, err := helpers.DecodeTokenAndGetUID(c)
 	if err != nil {
-		c.Status(fiber.StatusInternalServerError)
+		c.Status(fiber.StatusUnauthorized)
+		println("UID err")
 		return c.JSON(fiber.Map{
-			"message": "Internal error",
+			"message": "Unauthorized",
 		})
 	}
 
-	if res.ModifiedCount == 0 {
-		//Room could not be found, or the user trying to modify the room is not the owner
+	oid, err := primitive.ObjectIDFromHex(c.Params("id"))
+	if err != nil {
 		c.Status(fiber.StatusBadRequest)
 		return c.JSON(fiber.Map{
-			"message": "Bad request",
+			"message": "Invalid ID",
 		})
 	}
+
+	found := db.RoomCollection.FindOne(c.Context(), bson.M{"_id": oid})
+	if found.Err() != nil {
+		if found.Err() == mongo.ErrNoDocuments {
+			c.Status(fiber.StatusNotFound)
+			return c.JSON(fiber.Map{
+				"message": "Room not found",
+			})
+		} else {
+			c.Status(fiber.StatusInternalServerError)
+			return c.JSON(fiber.Map{
+				"message": "Internal error",
+			})
+		}
+	} else {
+		var room models.Room
+		found.Decode(&room)
+		if room.Author != uid {
+			c.Status(fiber.StatusUnauthorized)
+			return c.JSON(fiber.Map{
+				"message": "Unauthorized",
+			})
+		}
+	}
+
+	db.RoomCollection.UpdateByID(c.Context(), oid, bson.D{{"$set", bson.D{{"name", body.Name}}}})
 
 	c.Status(fiber.StatusOK)
 	return c.JSON(fiber.Map{
 		"message": "Room name updated",
 	})
+}
+
+const maxRoomImageSize = 20 * 1024 * 1024 //20mb
+
+func UploadRoomImage(chatServer *ChatServer) func(*fiber.Ctx) error {
+	return func(c *fiber.Ctx) error {
+		file, err := c.FormFile("file")
+		if err != nil {
+			c.Status(fiber.StatusBadRequest)
+			return c.JSON(fiber.Map{
+				"message": err,
+			})
+		}
+
+		if file.Size > maxRoomImageSize {
+			c.Status(fiber.StatusBadRequest)
+			return c.JSON(fiber.Map{
+				"message": "File too large. Max 20mb.",
+			})
+		}
+
+		if !strings.HasPrefix(file.Header.Get("Content-Type"), "image/") {
+			c.Status(fiber.StatusBadRequest)
+			return c.JSON(fiber.Map{
+				"message": "File is not an image",
+			})
+		}
+
+		uid, err := helpers.DecodeTokenAndGetUID(c)
+		if err != nil {
+			c.Status(fiber.StatusNotFound)
+			return c.JSON(fiber.Map{
+				"message": "Your session could not be found",
+			})
+		}
+
+		if c.Params("id") == "" {
+			c.Status(fiber.StatusBadRequest)
+			return c.JSON(fiber.Map{
+				"message": "Bad request",
+			})
+		}
+		roomId, err := primitive.ObjectIDFromHex(c.Params("id"))
+		if err != nil {
+			c.Status(fiber.StatusBadRequest)
+			return c.JSON(fiber.Map{
+				"message": "Invalid ID",
+			})
+		}
+		var room models.Room
+		found := db.RoomCollection.FindOne(c.Context(), bson.M{"_id": roomId})
+		if found.Err() == mongo.ErrNoDocuments {
+			c.Status(fiber.StatusNotFound)
+			return c.JSON(fiber.Map{
+				"message": "Room not found",
+			})
+		} else if found.Err() == nil {
+			found.Decode(&room)
+		} else {
+			c.Status(fiber.StatusInternalServerError)
+			return c.JSON(fiber.Map{
+				"message": "Internal error",
+			})
+		}
+
+		if room.Author != uid {
+			c.Status(fiber.StatusUnauthorized)
+			return c.JSON(fiber.Map{
+				"message": "Unauthorized",
+			})
+		}
+
+		src, err := file.Open()
+		if err != nil {
+			c.Status(fiber.StatusInternalServerError)
+			return c.JSON(fiber.Map{
+				"message": "Error opening file",
+			})
+		}
+		defer src.Close()
+
+		var img image.Image
+		var decodeErr error
+		if file.Header.Get("Content-Type") == "image/jpeg" {
+			img, decodeErr = jpeg.Decode(src)
+		} else if file.Header.Get("Content-Type") == "image/png" {
+			img, decodeErr = png.Decode(src)
+		} else {
+			c.Status(fiber.StatusBadRequest)
+			return c.JSON(fiber.Map{
+				"message": "Unrecognized / unsupported format",
+			})
+		}
+		if decodeErr != nil {
+			c.Status(fiber.StatusInternalServerError)
+			return c.JSON(fiber.Map{
+				"message": "Internal error",
+			})
+		}
+
+		img = resize.Resize(200, 0, img, resize.Lanczos2)
+		buf := &bytes.Buffer{}
+		if err := jpeg.Encode(buf, img, nil); err != nil {
+			c.Status(fiber.StatusInternalServerError)
+			return c.JSON(fiber.Map{
+				"message": "Internal error",
+			})
+		}
+
+		count, err := db.RoomImageCollection.CountDocuments(c.Context(), bson.M{"_id": roomId})
+		if count != 0 {
+			db.RoomImageCollection.UpdateByID(c.Context(), roomId, models.RoomImage{
+				Binary: primitive.Binary{Data: buf.Bytes()},
+			})
+		} else {
+			db.RoomImageCollection.InsertOne(c.Context(), models.RoomImage{
+				ID:     roomId,
+				Binary: primitive.Binary{Data: buf.Bytes()},
+			})
+		}
+
+		//send the updated chatroom image to all users through websocket api
+		for conn := range chatServer.connections {
+			if conn.Locals("uid").(primitive.ObjectID) != uid {
+				conn.WriteJSON(fiber.Map{
+					"ID":          roomId.Hex(),
+					"base64image": "data:image/jpeg;base64," + base64.StdEncoding.EncodeToString(buf.Bytes()),
+					"event_type":  "chatroom_update",
+				})
+			}
+		}
+
+		//clear the buffer. garbage collection does this automatically but this might be a little faster
+		buf = nil
+
+		c.Status(fiber.StatusOK)
+		return c.JSON(fiber.Map{
+			"message": "Updated image",
+		})
+	}
 }
 
 func DeleteRoom(c *fiber.Ctx) error {
