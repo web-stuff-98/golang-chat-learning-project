@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"log"
+	"os"
 	"time"
 
 	"go.mongodb.org/mongo-driver/mongo"
@@ -20,7 +21,8 @@ var RoomCollection *mongo.Collection
 var RoomImageCollection *mongo.Collection
 
 func Connect() {
-	client, err := mongo.NewClient(options.Client().ApplyURI("mongodb://localhost:27017"))
+	log.Println("Connecting to MongoDB...")
+	client, err := mongo.NewClient(options.Client().ApplyURI(os.Getenv("MONGODB_URI")))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -33,6 +35,7 @@ func Connect() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	log.Println("MongoDB connected")
 	MongoClient = client
 	DB = client.Database("session-cookie-go")
 

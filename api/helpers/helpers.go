@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
 	"time"
 
 	"github.com/web-stuff-98/golang-chat-learning-project/db"
@@ -44,13 +45,13 @@ func GenerateToken(c *fiber.Ctx, uid primitive.ObjectID, expiresAt time.Time, ke
 		Issuer:    inserted.InsertedID.(primitive.ObjectID).Hex(), //the issuer is the session id
 		ExpiresAt: expiresAt.Unix(),                               //not sure if this should be a unix timestamp
 	})
-	token, err := claims.SignedString([]byte("secret"))
+	token, err := claims.SignedString([]byte(os.Getenv("SECRET")))
 	return token, nil
 }
 func DecodeToken(c *fiber.Ctx) (*jwt.Token, error) {
 	cookie := c.Cookies("session_token")
 	token, err := jwt.ParseWithClaims(cookie, &jwt.StandardClaims{}, func(t *jwt.Token) (interface{}, error) {
-		return []byte("secret"), nil
+		return []byte(os.Getenv("SECRET")), nil
 	})
 	if err != nil {
 		return nil, err
@@ -99,7 +100,7 @@ func AddSocketIdToSession(c *fiber.Ctx, socketId string) error {
 		return fmt.Errorf("No cookie")
 	}
 	token, err := jwt.ParseWithClaims(c.Cookies("session_token"), &jwt.StandardClaims{}, func(t *jwt.Token) (interface{}, error) {
-		return []byte("secret"), nil
+		return []byte(os.Getenv("SECRET")), nil
 	})
 	if err != nil {
 		return err

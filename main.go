@@ -6,6 +6,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/joho/godotenv"
 	"github.com/web-stuff-98/golang-chat-learning-project/api/controllers"
 	"github.com/web-stuff-98/golang-chat-learning-project/api/routes"
 	"github.com/web-stuff-98/golang-chat-learning-project/db"
@@ -17,6 +18,11 @@ import (
 )
 
 func main() {
+	err := godotenv.Load()
+	if err != nil {
+		println("No .env file detected. env vars should be set in docker container for production. Continuing...")
+	}
+
 	app := fiber.New()
 
 	db.Connect()
@@ -30,8 +36,8 @@ func main() {
 		log.Fatal(fmt.Printf("Failed to setup chat server : %d", err))
 	}
 
-	/* Cleanup interval to delete expired sessions still in the database */
-	cleanupTicker := time.NewTicker(240 * time.Second)
+	/* Cleanup interval to delete expired sessions still in the db */
+	cleanupTicker := time.NewTicker(960 * time.Second)
 	quitCleanup := make(chan struct{})
 	go func() {
 		for {
