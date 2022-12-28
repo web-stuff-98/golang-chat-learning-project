@@ -2,11 +2,12 @@ package helpers
 
 import (
 	"context"
-	"cookie-session/db"
-	"cookie-session/db/models"
 	"fmt"
 	"log"
 	"time"
+
+	"github.com/web-stuff-98/golang-chat-learning-project/db"
+	"github.com/web-stuff-98/golang-chat-learning-project/db/models"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gofiber/fiber/v2"

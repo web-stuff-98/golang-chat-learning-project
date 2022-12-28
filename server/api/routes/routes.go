@@ -1,7 +1,7 @@
 package routes
 
 import (
-	"cookie-session/api/controllers"
+	"github.com/web-stuff-98/golang-chat-learning-project/api/controllers"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -20,6 +20,7 @@ func Setup(app *fiber.App, chatServer *controllers.ChatServer, closeWsChan chan 
 
 	app.Get("/api/room/:id", controllers.GetRoom)
 	app.Patch("/api/room/:id", controllers.UpdateRoom)
+	app.Delete("/api/room/:id", controllers.DeleteRoom(chatServer))
 	app.Post("/api/room/:id/image", controllers.UploadRoomImage(chatServer))
 	app.Post("/api/room/:id/join", controllers.JoinRoom(chatServer))
 	app.Post("/api/room/:id/leave", controllers.LeaveRoom(chatServer))

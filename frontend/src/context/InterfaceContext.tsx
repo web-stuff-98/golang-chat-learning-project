@@ -10,6 +10,12 @@ const initialState: State = {
   containerMode: "Full",
 };
 
+function lerp(value1: number, value2: number, amount: number) {
+  amount = amount < 0 ? 0 : amount;
+  amount = amount > 1 ? 1 : amount;
+  return value1 + (value2 - value1) * amount;
+}
+
 type State = {
   darkMode: boolean;
   dimensions: { width: number; height: number };
@@ -35,10 +41,20 @@ export const InterfaceProvider = ({ children }: { children: ReactNode }) => {
   const [state, dispatch] = useReducer(InterfaceReducer, initialState);
 
   useEffect(() => {
-    const handleResize = () =>
+    const handleResize = () => {
+      const lo = 700;
+      const hi = 1024;
+      const a = (Math.min(hi, Math.max(window.innerWidth, lo)) - lo) / (hi - lo);
+      const v = lerp(window.innerWidth / 6 / 2, window.innerWidth / 2 / 2, Math.pow(a, 0.8));
+      console.log(v)
+      document.documentElement.style.setProperty(
+        "--horizontal-whitespace",
+        `${window.innerWidth < lo ? 0 : v}px`
+      );
       dispatch({
         dimensions: { width: window.innerWidth, height: window.innerHeight },
       });
+    };
     handleResize();
     window.addEventListener("resize", handleResize);
     return () => {

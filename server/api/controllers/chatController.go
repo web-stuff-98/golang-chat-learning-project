@@ -3,10 +3,6 @@ package controllers
 import (
 	"bytes"
 	"context"
-	"cookie-session/api/helpers"
-	"cookie-session/api/validator"
-	"cookie-session/db"
-	"cookie-session/db/models"
 	"encoding/base64"
 	"image"
 	"image/jpeg"
@@ -14,6 +10,11 @@ import (
 	"log"
 	"strings"
 	"time"
+
+	"github.com/web-stuff-98/golang-chat-learning-project/api/helpers"
+	"github.com/web-stuff-98/golang-chat-learning-project/api/validator"
+	"github.com/web-stuff-98/golang-chat-learning-project/db"
+	"github.com/web-stuff-98/golang-chat-learning-project/db/models"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/websocket/v2"
@@ -82,7 +83,7 @@ type ChatRoomConnectionRegistration struct {
 	uid string
 }
 
-func SetupChatServer() (*ChatServer, chan string, error) {
+func NewServer() (*ChatServer, chan string, error) {
 	//closeWsChan can be used to close websockets using the users id
 	closeWsChan := make(chan string)
 
@@ -548,14 +549,13 @@ func UploadRoomImage(chatServer *ChatServer) func(*fiber.Ctx) error {
 
 		count, err := db.RoomImageCollection.CountDocuments(c.Context(), bson.M{"_id": roomId})
 		if count != 0 {
-			db.RoomImageCollection.UpdateByID(c.Context(), roomId, models.RoomImage{
-				Binary: primitive.Binary{Data: buf.Bytes()},
-			})
+			db.RoomImageCollection.UpdateByID(c.Context(), roomId, bson.M{"$set": bson.M{"binary": primitive.Binary{Data: buf.Bytes()}}})
 		} else {
 			db.RoomImageCollection.InsertOne(c.Context(), models.RoomImage{
 				ID:     roomId,
 				Binary: primitive.Binary{Data: buf.Bytes()},
 			})
+			println("Created image")
 		}
 
 		//send the updated chatroom image to all users through websocket api
@@ -579,34 +579,83 @@ func UploadRoomImage(chatServer *ChatServer) func(*fiber.Ctx) error {
 	}
 }
 
-func DeleteRoom(c *fiber.Ctx) error {
-	if c.Params("id") == "" {
-		c.Status(fiber.StatusBadRequest)
-		c.JSON(fiber.Map{
-			"message": "Bad request",
-		})
-	}
+func DeleteRoom(chatServer *ChatServer) func(*fiber.Ctx) error {
+	return func(c *fiber.Ctx) error {
+		if c.Params("id") == "" {
+			c.Status(fiber.StatusBadRequest)
+			return c.JSON(fiber.Map{
+				"message": "Bad request",
+			})
+		}
 
-	res, err := db.RoomCollection.DeleteOne(c.Context(), bson.M{"_id": c.Params("id"), "author_id": c.Locals("uid").(primitive.ObjectID).Hex()})
+		oid, err := primitive.ObjectIDFromHex(c.Params("id"))
+		if err != nil {
+			c.Status(fiber.StatusBadRequest)
+			return c.JSON(fiber.Map{
+				"message": "Bad request",
+			})
+		}
 
-	if res.DeletedCount == 0 {
-		c.Status(fiber.StatusBadRequest)
+		var uid primitive.ObjectID
+
+		var room models.Room
+		found := db.RoomCollection.FindOne(c.Context(), bson.M{"_id": oid})
+		if found.Err() != nil {
+			if found.Err() == mongo.ErrNoDocuments {
+				c.Status(fiber.StatusNotFound)
+				return c.JSON(fiber.Map{
+					"message": "Room not found",
+				})
+			}
+		} else {
+			found.Decode(&room)
+			uid, err := helpers.DecodeTokenAndGetUID(c)
+			if err != nil {
+				c.Status(fiber.StatusNotFound)
+				return c.JSON(fiber.Map{
+					"message": "Your session could not be found",
+				})
+			}
+			if room.Author != uid {
+				c.Status(fiber.StatusUnauthorized)
+				return c.JSON(fiber.Map{
+					"message": "Unauthorized",
+				})
+			}
+		}
+
+		res, err := db.RoomCollection.DeleteOne(c.Context(), bson.M{"_id": oid})
+		db.RoomImageCollection.DeleteOne(c.Context(), bson.M{"_id": oid})
+
+		if res.DeletedCount == 0 {
+			c.Status(fiber.StatusBadRequest)
+			return c.JSON(fiber.Map{
+				"message": "Bad request",
+			})
+		}
+
+		if err != nil {
+			c.Status(fiber.StatusInternalServerError)
+			return c.JSON(fiber.Map{
+				"message": "Internal error",
+			})
+		}
+
+		//send the socket event that removes the chatroom for other users
+		for conn := range chatServer.connections {
+			if conn.Locals("uid").(primitive.ObjectID) != uid {
+				conn.WriteJSON(fiber.Map{
+					"ID":         oid.Hex(),
+					"event_type": "chatroom_delete",
+				})
+			}
+		}
+
+		c.Status(fiber.StatusOK)
 		return c.JSON(fiber.Map{
-			"message": "Bad request",
+			"message": "Room deleted",
 		})
 	}
-
-	if err != nil {
-		c.Status(fiber.StatusInternalServerError)
-		return c.JSON(fiber.Map{
-			"message": "Internal error",
-		})
-	}
-
-	c.Status(fiber.StatusOK)
-	return c.JSON(fiber.Map{
-		"message": "Room deleted",
-	})
 }
 
 func JoinRoom(chatServer *ChatServer) func(*fiber.Ctx) error {

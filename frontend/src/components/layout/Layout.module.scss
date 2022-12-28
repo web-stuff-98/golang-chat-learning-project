@@ -24,16 +24,17 @@
     align-items: center;
     padding: 0 calc(var(--horizontal-whitespace) + 0.866rem);
     color: var(--text-color-contrast);
+    box-sizing: border-box;
 
     .navLinks {
       display: flex;
-      gap: 1rem;
-        * {
-          color: var(--text-color-contrast);
-          text-decoration: none;
-          font-weight: 600;
-          font-size: var(--font-lg);
-        }
+      gap: min(1rem, 1vw);
+      * {
+        color: var(--text-color-contrast);
+        text-decoration: none;
+        font-weight: 600;
+        font-size: min(var(--font-lg), 4vw);
+      }
     }
   }
 }

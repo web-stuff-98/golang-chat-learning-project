@@ -1,5 +1,6 @@
-import { useState, useContext, createContext } from "react";
+import { useState, useContext, createContext, useCallback } from "react";
 import type { ReactNode } from "react";
+import { makeRequest } from "../services/makeRequest";
 
 export interface IRoom {
   ID: string;
@@ -10,16 +11,22 @@ export interface IRoom {
 
 const RoomsContext = createContext<{
   rooms: IRoom[];
-  updateRoomData: (data: Partial<IRoom>) => void;
+  updateRoomData: (data: Omit<Partial<IRoom>, "event_type">) => void;
+  deleteRoom: (id: string) => void;
   setAllRooms: (rooms: IRoom[]) => void;
   ownRooms: boolean;
   setOwnRooms: (to: boolean) => void;
+  getRoomData: (id: string) => IRoom | undefined;
+  deleteRoomsByAuthor: (uid: string) => void;
 }>({
   rooms: [],
   updateRoomData: () => {},
+  deleteRoom: () => {},
   setAllRooms: () => {},
   ownRooms: false,
   setOwnRooms: () => {},
+  getRoomData: () => undefined,
+  deleteRoomsByAuthor: () => {},
 });
 
 export const RoomsProvider = ({ children }: { children: ReactNode }) => {
@@ -39,11 +46,35 @@ export const RoomsProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
+  const getRoomData = useCallback((id: string) => {
+    return rooms.find((r) => r.ID === id);
+  }, []);
+
+  const deleteRoomsByAuthor = (uid: string) =>
+    setRooms((o) => [...o.filter((r) => r.author_id !== uid)]);
+
   const setAllRooms = (rooms: IRoom[]) => setRooms(rooms);
+
+  const deleteRoom = (id: string) => {
+    makeRequest(`/api/room/${id}`, { method: "DELETE", withCredentials: true })
+      .then(() => {
+        setRooms((old) => [...old.filter((r) => r.ID !== id)]);
+      })
+      .catch(() => {});
+  };
 
   return (
     <RoomsContext.Provider
-      value={{ rooms, updateRoomData, setAllRooms, setOwnRooms, ownRooms }}
+      value={{
+        rooms,
+        updateRoomData,
+        setAllRooms,
+        setOwnRooms,
+        ownRooms,
+        deleteRoom,
+        getRoomData,
+        deleteRoomsByAuthor,
+      }}
     >
       {children}
     </RoomsContext.Provider>

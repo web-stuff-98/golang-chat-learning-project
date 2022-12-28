@@ -22,7 +22,9 @@ const UsersContext = createContext<{
   userEnteredView: (uid: string) => void;
   userLeftView: (uid: string) => void;
 
-  updateUserData: (data: Partial<IUser>) => void;
+  deleteUser: (id: string) => void;
+
+  updateUserData: (data: Omit<Partial<IUser>, "event_type">) => void;
 }>({
   users: [],
   getUserData: () => ({ username: "", ID: "" }),
@@ -30,6 +32,8 @@ const UsersContext = createContext<{
 
   userEnteredView: () => {},
   userLeftView: () => {},
+
+  deleteUser: () => {},
 
   updateUserData: () => {},
 });
@@ -69,6 +73,12 @@ export const UsersProvider = ({ children }: { children: ReactNode }) => {
       newdata[i] = { ...newdata[i], ...data };
       return [...newdata];
     });
+  };
+
+  const deleteUser = (id: string) => {
+    setVisibleUsers((o) => [...o.filter((u) => u !== id)]);
+    setDisappearedUsers((o) => [...o.filter((u) => u.uid !== id)]);
+    setUsers((o) => [...o.filter((o) => o.ID !== id)]);
   };
 
   const [visibleUsers, setVisibleUsers] = useState<string[]>([]);
@@ -133,6 +143,7 @@ export const UsersProvider = ({ children }: { children: ReactNode }) => {
         userEnteredView,
         userLeftView,
         updateUserData,
+        deleteUser,
       }}
     >
       {children}

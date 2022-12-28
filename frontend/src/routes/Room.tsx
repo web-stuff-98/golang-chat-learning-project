@@ -22,8 +22,8 @@ export default function Room() {
   const { socket } = useSocket();
   const { id } = useParams();
   const { user } = useAuth();
-  const { updateRoomData } = useRooms();
-  const { updateUserData, cacheUserData } = useUsers();
+  const { getRoomData, deleteRoomsByAuthor } = useRooms();
+  const { cacheUserData } = useUsers();
   const navigate = useNavigate();
 
   const [joined, setJoined] = useState(false);
@@ -64,13 +64,31 @@ export default function Room() {
   useEffect(() => {
     if (!socket) return;
     socket.onmessage = (e) => {
-      console.log(e.data);
-      if (!Object.keys(e.data).includes("event_type")) { //if no event_type, then its a normal room message, so don't ignore it
+      let data = JSON.parse(e.data);
+      if (!data.event_type) {
+        //if no event_type, then its a normal room message, so don't ignore it
+        delete data.event_type;
         cacheUserData(e.data.uid);
         setMessages((old) => [
           ...old,
-          { ...e.data, timestamp: new Date().toISOString() },
+          { ...data, timestamp: new Date().toISOString() },
         ]);
+      } else {
+        if (data.event_type === "user_delete") {
+          const r = getRoomData(id as string);
+          setMessages((old) => [...old.filter((msg) => msg.uid !== data.ID)]);
+          if (r) {
+            if (r.author_id === data.ID) {
+              deleteRoomsByAuthor(data.ID);
+              navigate("/room/list");
+            }
+          }
+        }
+        if (data.event_type === "chatroom_delete") {
+          if (data.ID === id) {
+            navigate("/room/list");
+          }
+        }
       }
     };
   }, [socket]);

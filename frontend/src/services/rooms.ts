@@ -19,10 +19,10 @@ const updateRoom = (id: string, data: { name: string }) =>
   makeRequest(`/api/room/${id}`, {
     method: "PATCH",
     data,
-    withCredentials:true
+    withCredentials: true,
   });
 
-const uploadRoomImage = (id:string, file: File) => {
+const uploadRoomImage = (id: string, file: File) => {
   const formData = new FormData();
   formData.append("file", file);
   return makeRequest(`/api/room/${id}/image`, {
@@ -44,4 +44,12 @@ const leaveRoom = (id: string) =>
     withCredentials: true,
   });
 
-export { getRoom, getRooms, createRoom, updateRoom, joinRoom, leaveRoom, uploadRoomImage };
+export {
+  getRoom,
+  getRooms,
+  createRoom,
+  updateRoom,
+  joinRoom,
+  leaveRoom,
+  uploadRoomImage,
+};

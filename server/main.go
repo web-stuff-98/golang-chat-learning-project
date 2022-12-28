@@ -2,12 +2,13 @@ package main
 
 import (
 	"context"
-	"cookie-session/api/controllers"
-	"cookie-session/api/routes"
-	"cookie-session/db"
 	"fmt"
 	"log"
 	"time"
+
+	"github.com/web-stuff-98/golang-chat-learning-project/api/controllers"
+	"github.com/web-stuff-98/golang-chat-learning-project/api/routes"
+	"github.com/web-stuff-98/golang-chat-learning-project/db"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -24,7 +25,7 @@ func main() {
 		AllowCredentials: true,
 	}))
 
-	chatServer, closeWsChan, err := controllers.SetupChatServer()
+	chatServer, closeWsChan, err := controllers.NewServer()
 	if err != nil {
 		log.Fatal(fmt.Printf("Failed to setup chat server : %d", err))
 	}

@@ -2,10 +2,6 @@ package controllers
 
 import (
 	"bytes"
-	"cookie-session/api/helpers"
-	"cookie-session/api/validator"
-	"cookie-session/db"
-	"cookie-session/db/models"
 	"encoding/base64"
 	"fmt"
 	"image"
@@ -13,6 +9,11 @@ import (
 	"image/png"
 	"strings"
 	"time"
+
+	"github.com/web-stuff-98/golang-chat-learning-project/api/helpers"
+	"github.com/web-stuff-98/golang-chat-learning-project/api/validator"
+	"github.com/web-stuff-98/golang-chat-learning-project/db"
+	"github.com/web-stuff-98/golang-chat-learning-project/db/models"
 
 	"github.com/nfnt/resize"
 

@@ -1,4 +1,4 @@
-module cookie-session
+module  github.com/web-stuff-98/golang-chat-learning-project
 
 go 1.19
 

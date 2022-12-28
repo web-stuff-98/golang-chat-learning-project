@@ -7,14 +7,14 @@ import { getRooms } from "../services/rooms";
 import ResMsg, { IResMsg } from "../components/ResMsg";
 
 import { IoEnter } from "react-icons/io5";
-import { AiFillEdit } from "react-icons/ai";
+import { AiFillEdit, AiFillDelete } from "react-icons/ai";
 import IconBtn from "../components/IconBtn";
 import { IRoom, useRooms } from "../context/RoomsContext";
 import { useAuth } from "../context/AuthContext";
 
 export default function RoomList() {
   const navigate = useNavigate();
-  const { setAllRooms, rooms, setOwnRooms } = useRooms();
+  const { setAllRooms, rooms, setOwnRooms, deleteRoom } = useRooms();
   const { user } = useAuth();
 
   const [searchParams] = useSearchParams();
@@ -82,6 +82,15 @@ export default function RoomList() {
                   Icon={AiFillEdit}
                   name="Edit room"
                   ariaLabel="Edit room"
+                  style={room.base64image ? { color: "white" } : {}}
+                />
+              )}
+              {room.author_id === user?.ID! && (
+                <IconBtn
+                  onClick={() => deleteRoom(room.ID)}
+                  Icon={AiFillDelete}
+                  name="Delete room"
+                  ariaLabel="Delete room"
                   style={room.base64image ? { color: "white" } : {}}
                 />
               )}

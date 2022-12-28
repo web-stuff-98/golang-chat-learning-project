@@ -3,7 +3,7 @@ import classes from "./Layout.module.scss";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 
-import { makeRequest } from "../../services/makeRequest";
+import User from "../User";
 
 export default function Nav() {
   const { user, logout } = useAuth();
@@ -26,13 +26,13 @@ export default function Nav() {
         )}
         {user && (
           <>
-          <button
-            onClick={() => logout()}
-            aria-label="Logout"
-            style={{ background: "none", border: "none", padding: "none" }}
-          >
-            <span>Logout</span>
-          </button>
+            <button
+              onClick={() => logout()}
+              aria-label="Logout"
+              style={{ background: "none", border: "none", padding: "none" }}
+            >
+              <span>Logout</span>
+            </button>
             <Link to="/room/menu">
               <span>Rooms</span>
             </Link>
@@ -42,7 +42,7 @@ export default function Nav() {
           </>
         )}
       </div>
-      {user && user.ID}
+      {user && <User light reverse uid={user?.ID} user={user} />}
     </nav>
   );
 }

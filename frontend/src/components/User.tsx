@@ -17,12 +17,14 @@ export default function User({
   onClick = undefined,
   date,
   reverse,
+  light,
 }: {
   user?: IUser;
   uid: string;
   onClick?: () => void;
   date?: Date;
   reverse?: boolean;
+  light?: boolean;
 }) {
   const { userEnteredView, cacheUserData, userLeftView } = useUsers();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -48,13 +50,15 @@ export default function User({
   const renderDateTime = (dateString: string) => {
     return (
       <div
-        style={
-          reverse ? { alignItems: "flex-end", textAlign: "right" } : {}
-        }
+        style={reverse ? { alignItems: "flex-end", textAlign: "right" } : {}}
         className={classes.dateTime}
       >
-        <span>{dateString.split(", ")[0]}</span>
-        <span>{dateString.split(", ")[1]}</span>
+        <span style={light ? { color: "white" } : {}}>
+          {dateString.split(", ")[0]}
+        </span>
+        <span style={light ? { color: "white" } : {}}>
+          {dateString.split(", ")[1]}
+        </span>
       </div>
     );
   };
@@ -82,10 +86,20 @@ export default function User({
             {!user.base64pfp && <AiOutlineUser className={classes.pfpIcon} />}
           </span>
           <div
-            style={reverse ? { textAlign: "right", alignItems:"flex-end" } : {}}
+            style={{
+              ...(light ? { color: "white" } : {}),
+              ...(reverse
+                ? { textAlign: "right", alignItems: "flex-end" }
+                : {}),
+            }}
             className={classes.text}
           >
-            <div className={classes.name}>{user.username}</div>
+            <div
+              style={light ? { color: "white" } : {}}
+              className={classes.name}
+            >
+              {user.username}
+            </div>
             {date && renderDateTime(getDateString(date))}
           </div>
         </>
