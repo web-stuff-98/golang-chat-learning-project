@@ -22,11 +22,11 @@ func Setup(app *fiber.App, chatServer *controllers.ChatServer, closeWsChan chan 
 	app.Get("/ws/conn", controllers.HandleWsConn(chatServer, closeWsChan))
 
 	app.Get("/api/room/:id", helpers.AuthMiddleware, controllers.HandleGetRoom)
+	app.Get("/api/rooms", helpers.AuthMiddleware, controllers.HandleGetRooms)
 	app.Patch("/api/room/:id", helpers.AuthMiddleware, controllers.HandleUpdateRoom)
 	app.Delete("/api/room/:id", helpers.AuthMiddleware, controllers.HandleDeleteRoom(chatServer))
 	app.Post("/api/room/:id/image", helpers.AuthMiddleware, controllers.HandleUploadRoomImage(chatServer))
 	app.Post("/api/room/:id/join", helpers.AuthMiddleware, controllers.HandleJoinRoom(chatServer))
 	app.Post("/api/room/:id/leave", helpers.AuthMiddleware, controllers.HandleLeaveRoom(chatServer))
-	app.Get("/api/room/rooms", helpers.AuthMiddleware, controllers.HandleGetRooms)
 	app.Post("/api/room", helpers.AuthMiddleware, controllers.HandleCreateRoom)
 }

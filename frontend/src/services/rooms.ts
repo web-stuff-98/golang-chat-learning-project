@@ -1,7 +1,7 @@
 import { makeRequest } from "./makeRequest";
 
 const getRooms = (getOwnRooms: boolean) =>
-  makeRequest(`/api/room/rooms${getOwnRooms ? "?own=true" : "?own=false"}`, {
+  makeRequest(`/api/rooms${getOwnRooms ? "?own=true" : "?own=false"}`, {
     withCredentials: true,
   });
 

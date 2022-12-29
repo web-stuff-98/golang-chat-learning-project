@@ -94,8 +94,9 @@ func generateRoom(i uint8, uid primitive.ObjectID) (rid primitive.ObjectID, err 
 		return primitive.NilObjectID, err
 	}
 	inserted, err := db.RoomCollection.InsertOne(context.TODO(), models.Room{
-		Name:   fmt.Sprintf("Room %d", i+1),
-		Author: uid,
+		Name:     fmt.Sprintf("Room %d", i+1),
+		Author:   uid,
+		Messages: []models.Message{},
 	})
 	if err != nil {
 		return primitive.NilObjectID, err
