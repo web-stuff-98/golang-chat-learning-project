@@ -5,9 +5,13 @@ import type { CSSProperties } from "react";
 
 import { Outlet } from "react-router-dom";
 import { useInterface } from "../../context/InterfaceContext";
+import { useMouse } from "../../context/MouseContext";
+import Header from "./Header";
 
 export default function Layout() {
   const { state: iState } = useInterface();
+
+  const mousePos = useMouse();
 
   const getStyle = () => {
     switch (iState.containerMode) {
@@ -48,16 +52,25 @@ export default function Layout() {
           <div
             aria-label="hidden"
             style={{
-              maskImage: `radial-gradient(circle at 50% 50%, transparent -50%, rgba(0,0,0,0.25) 86.66%)`,
-              WebkitMaskImage: `radial-gradient(circle at 50% 50%, transparent -50%, rgba(0,0,0,0.25) 86.66%)`,
+              maskImage: `radial-gradient(circle at ${
+                (mousePos?.left! / iState.dimensions.width) * 100
+              }% ${
+                (mousePos?.top! / iState.dimensions.height) * 100
+              }%, black 0%, transparent 7%)`,
+              WebkitMaskImage: `radial-gradient(circle at ${
+                (mousePos?.left! / iState.dimensions.width) * 100
+              }% ${
+                (mousePos?.top! / iState.dimensions.height) * 100
+              }%, black 0%, transparent 7%)`,
               ...(iState.darkMode
-                ? { filter: "brightness(5.5) contrast(1.5) blur(3px)" }
+                ? { filter: "brightness(4.7) contrast(1.8) blur(3px)" }
                 : {}),
             }}
             className={classes.backgroundHover}
           />
         </div>
       </div>
+      <Header/>
       <Nav />
       <main style={getStyle()}>
         <Outlet />

@@ -6,6 +6,7 @@ import { IUser, useAuth } from "../context/AuthContext";
 import ResMsg, { IResMsg } from "../components/ResMsg";
 import { makeRequest } from "../services/makeRequest";
 import ProtectedRoute from "./ProtectedRoute";
+import { BsGearWide } from "react-icons/bs";
 
 export default function Settings() {
   const { user, deleteAccount, updateUserState } = useAuth();
@@ -57,7 +58,11 @@ export default function Settings() {
   return (
     <ProtectedRoute user={user}>
       <form className={classes.container}>
-        <h1>Settings</h1>
+        <div className={classes.heading}>
+          <BsGearWide />
+          <h1>Settings</h1>
+        </div>
+        <hr />
         <input
           onChange={handlePfpInput}
           type="file"
@@ -74,7 +79,7 @@ export default function Settings() {
           }
           onClick={() => hiddenPfpInputRef.current?.click()}
         />
-        <p>You can click on your profile to select a new image.</p>
+        <p>You can click on your profile picture to select a new image. It will update automatically.</p>
         <button
           onClick={() => deleteAccount()}
           className={classes.deleteAccountButton}

@@ -405,6 +405,21 @@ func CreateRoom(c *fiber.Ctx) error {
 		})
 	}
 
+	found := db.RoomCollection.FindOne(c.Context(), bson.M{"author_id": uid, "name": bson.M{"$regex": body.Name, "$options": "i"}})
+	if found.Err() != nil {
+		if found.Err() != mongo.ErrNoDocuments {
+			c.Status(fiber.StatusInternalServerError)
+			return c.JSON(fiber.Map{
+				"message": "Internal error",
+			})
+		} else {
+			c.Status(fiber.StatusBadRequest)
+			return c.JSON(fiber.Map{
+				"message": "You already have a room by that name",
+			})
+		}
+	}
+
 	res, err := db.RoomCollection.InsertOne(c.Context(), models.Room{
 		Name:      body.Name,
 		CreatedAt: primitive.NewDateTimeFromTime(time.Now()),

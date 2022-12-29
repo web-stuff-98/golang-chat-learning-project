@@ -7,10 +7,40 @@
   padding: var(--padding);
   width: calc(100% - var(--padding) * 2);
 
-  h1 {
-    padding: 0;
+  .heading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap:var(--padding);
+    margin-bottom: var(--padding);
+    svg {
+      width: var(--font-lg);
+      height: var(--font-lg);
+    }
+    h1 {
+      padding: 0;
+      margin: 0;
+    }
+  }
+
+  hr {
     margin: 0;
-    margin-bottom: var(--padding-medium);
+    margin-bottom: 0.75rem;
+    width: 100%;
+    border: none;
+    border-bottom: 1px solid var(--base-heavy);
+    mask-image: linear-gradient(
+      to right,
+      transparent 0%,
+      black 50%,
+      transparent 100%
+    );
+    -webkit-mask-image: linear-gradient(
+      to right,
+      transparent 0%,
+      black 50%,
+      transparent 100%
+    );
   }
 
   input {
@@ -27,7 +57,6 @@
   }
 
   p {
-    max-width: 10rem;
     margin: 0;
     padding: var(--padding);
     line-height: 1;

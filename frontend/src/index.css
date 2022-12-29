@@ -1,6 +1,6 @@
 @font-face {
   font-family: "Coolvetica";
-  src: url(../public/coolvetica.rg-regular.otf);
+  src: url(../public/Simvoni-gxm5Y.ttf);
 }
 
 body {
@@ -24,9 +24,11 @@ button {
 input {
   outline: none;
   margin: 0;
+  background: none;
 }
 button {
   cursor: pointer;
+  background: var(--foreground);
 }
 
 * {
@@ -44,11 +46,13 @@ h1 {
 
   /* Component dimensions */
   --nav-height: 3rem;
+  --header-height: 4.75rem;
 
   /* Component & layout colours */
   --foreground: white;
   --background: #f0f1f3;
   --nav: rgb(9, 9, 9);
+  --header: linear-gradient(to top, rgb(16, 16, 16) 0%, black 100%);
 
   /* Component & Text Colours */
   --text-color: black;
@@ -78,10 +82,36 @@ h1 {
   --horizontal-whitespace: 27.5vw;
 
   /* Font sizes */
-  --font-lg: 1.666rem;
-  --font-md: 1.125rem;
-  --font-sm: 0.866rem;
-  --font-xs: 0.775rem;
+  --font-lg: 1.5rem;
+  --font-md: 1rem;
+  --font-sm: 0.9rem;
+  --font-xs: 0.75rem;
 
   --cross-background: url(../public/crossbackground.png);
+}
+
+.darkMode {
+  background: #0d0d0d;
+
+  /* Component dimensions */
+  --nav-height: 3rem;
+
+  --nav: rgb(14, 14, 14);
+
+  /* Component & layout colours */
+  --foreground: rgb(14, 14, 14);
+  --background: #0d0d0d;
+  --cross-background: url(../public/crossbackground_dark.png);
+
+  --text-color: white;
+  --text-color-contrast: black;
+
+  --base-heavy: rgba(255, 255, 255, 0.2);
+  --base-medium: rgba(255, 255, 255, 0.1);
+  --base-light: rgba(255, 255, 255, 0.05);
+  --base-pale: rgba(255, 255, 255, 0.0166);
+  --base-heavy-contrast: rgba(0, 0, 0, 0.66);
+  --base-medium-contrast: rgba(0, 0, 0, 0.33);
+  --base-light-contrast: rgba(0, 0, 0, 0.166);
+  --base-pale-contrast: rgba(0, 0, 0, 0.066);
 }

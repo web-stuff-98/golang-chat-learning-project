@@ -4,8 +4,17 @@ import type { ReactNode } from "react";
 
 type LayoutContainerMode = "Modal" | "Feed" | "Full";
 
+export interface IDimensions {
+  width: number;
+  height: number;
+}
+export interface IPosition {
+  top: number;
+  left: number;
+}
+
 const initialState: State = {
-  darkMode: false,
+  darkMode: true,
   dimensions: { width: 0, height: 0 },
   containerMode: "Full",
 };
@@ -18,7 +27,7 @@ function lerp(value1: number, value2: number, amount: number) {
 
 type State = {
   darkMode: boolean;
-  dimensions: { width: number; height: number };
+  dimensions: IDimensions;
   containerMode: LayoutContainerMode;
 };
 
@@ -66,6 +75,11 @@ export const InterfaceProvider = ({ children }: { children: ReactNode }) => {
       window.removeEventListener("resize", handleResize);
     };
   }, []);
+
+  useEffect(() => {
+    if (state.darkMode) document.body.classList.add("darkMode");
+    else document.body.classList.remove("darkMode");
+  }, [state.darkMode]);
 
   useEffect(() => {
     if (!location) return;
