@@ -1,5 +1,5 @@
 @font-face {
-  font-family: "Coolvetica";
+  font-family: "Simvoni";
   src: url(../public/Simvoni-gxm5Y.ttf);
 }
 
@@ -8,7 +8,7 @@ body {
   margin: 0;
   display: flex;
   flex-direction: column;
-  font-family: "Coolvetica";
+  font-family: "Simvoni";
 }
 
 code {
@@ -34,7 +34,7 @@ button {
 * {
   color: var(--text-color);
   font-size: var(--font-sm);
-  font-family: "Coolvetica";
+  font-family: "Simvoni";
 }
 
 h1 {
