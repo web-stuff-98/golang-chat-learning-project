@@ -434,83 +434,93 @@ func HandleCreateRoom(c *fiber.Ctx) error {
 }
 
 // Updates the room name only
-func HandleUpdateRoom(c *fiber.Ctx) error {
-	if c.Params("id") == "" {
-		c.Status(fiber.StatusBadRequest)
-		return c.JSON(fiber.Map{
-			"message": "Bad request",
-		})
-	}
-
-	var body validator.Room
-
-	if err := c.BodyParser(&body); err != nil {
-		c.Status(fiber.StatusBadRequest)
-		return c.JSON(fiber.Map{
-			"message": "Bad request",
-		})
-	}
-
-	oid, err := primitive.ObjectIDFromHex(c.Params("id"))
-	if err != nil {
-		c.Status(fiber.StatusBadRequest)
-		return c.JSON(fiber.Map{
-			"message": "Invalid ID",
-		})
-	}
-
-	foundRoomsCursor, err := db.RoomCollection.Find(c.Context(), bson.M{"author_id": c.Locals("uid").(primitive.ObjectID), "name": bson.M{"$regex": body.Name, "$options": "i"}})
-	if err != nil {
-		if err != mongo.ErrNoDocuments {
-			c.Status(fiber.StatusInternalServerError)
+func HandleUpdateRoom(protectedRids map[primitive.ObjectID]struct{}) func(*fiber.Ctx) error {
+	return func(c *fiber.Ctx) error {
+		_, ok := protectedRids[c.Locals("uid").(primitive.ObjectID)]
+		if ok {
+			c.Status(fiber.StatusUnauthorized)
 			return c.JSON(fiber.Map{
-				"message": "Internal error",
+				"message": "You cannot modify test rooms.",
 			})
 		}
-	} else {
-		for foundRoomsCursor.Next(c.Context()) {
-			var room models.Room
-			foundRoomsCursor.Decode(&room)
-			if room.ID != oid {
-				foundRoomsCursor.Close(c.Context())
-				c.Status(fiber.StatusBadRequest)
+
+		if c.Params("id") == "" {
+			c.Status(fiber.StatusBadRequest)
+			return c.JSON(fiber.Map{
+				"message": "Bad request",
+			})
+		}
+
+		var body validator.Room
+
+		if err := c.BodyParser(&body); err != nil {
+			c.Status(fiber.StatusBadRequest)
+			return c.JSON(fiber.Map{
+				"message": "Bad request",
+			})
+		}
+
+		oid, err := primitive.ObjectIDFromHex(c.Params("id"))
+		if err != nil {
+			c.Status(fiber.StatusBadRequest)
+			return c.JSON(fiber.Map{
+				"message": "Invalid ID",
+			})
+		}
+
+		foundRoomsCursor, err := db.RoomCollection.Find(c.Context(), bson.M{"author_id": c.Locals("uid").(primitive.ObjectID), "name": bson.M{"$regex": body.Name, "$options": "i"}})
+		if err != nil {
+			if err != mongo.ErrNoDocuments {
+				c.Status(fiber.StatusInternalServerError)
 				return c.JSON(fiber.Map{
-					"message": "You already have a room by that name",
+					"message": "Internal error",
+				})
+			}
+		} else {
+			for foundRoomsCursor.Next(c.Context()) {
+				var room models.Room
+				foundRoomsCursor.Decode(&room)
+				if room.ID != oid {
+					foundRoomsCursor.Close(c.Context())
+					c.Status(fiber.StatusBadRequest)
+					return c.JSON(fiber.Map{
+						"message": "You already have a room by that name",
+					})
+				}
+			}
+		}
+
+		found := db.RoomCollection.FindOne(c.Context(), bson.M{"_id": oid})
+		if found.Err() != nil {
+			if found.Err() == mongo.ErrNoDocuments {
+				c.Status(fiber.StatusNotFound)
+				return c.JSON(fiber.Map{
+					"message": "Room not found",
+				})
+			} else {
+				c.Status(fiber.StatusInternalServerError)
+				return c.JSON(fiber.Map{
+					"message": "Internal error",
+				})
+			}
+		} else {
+			var room models.Room
+			found.Decode(&room)
+			if room.Author != c.Locals("uid").(primitive.ObjectID) {
+				c.Status(fiber.StatusUnauthorized)
+				return c.JSON(fiber.Map{
+					"message": "Unauthorized",
 				})
 			}
 		}
+
+		db.RoomCollection.UpdateByID(c.Context(), oid, bson.D{{"$set", bson.D{{"name", body.Name}}}})
+
+		c.Status(fiber.StatusOK)
+		return c.JSON(fiber.Map{
+			"message": "Room name updated",
+		})
 	}
-
-	found := db.RoomCollection.FindOne(c.Context(), bson.M{"_id": oid})
-	if found.Err() != nil {
-		if found.Err() == mongo.ErrNoDocuments {
-			c.Status(fiber.StatusNotFound)
-			return c.JSON(fiber.Map{
-				"message": "Room not found",
-			})
-		} else {
-			c.Status(fiber.StatusInternalServerError)
-			return c.JSON(fiber.Map{
-				"message": "Internal error",
-			})
-		}
-	} else {
-		var room models.Room
-		found.Decode(&room)
-		if room.Author != c.Locals("uid").(primitive.ObjectID) {
-			c.Status(fiber.StatusUnauthorized)
-			return c.JSON(fiber.Map{
-				"message": "Unauthorized",
-			})
-		}
-	}
-
-	db.RoomCollection.UpdateByID(c.Context(), oid, bson.D{{"$set", bson.D{{"name", body.Name}}}})
-
-	c.Status(fiber.StatusOK)
-	return c.JSON(fiber.Map{
-		"message": "Room name updated",
-	})
 }
 
 const maxRoomImageSize = 20 * 1024 * 1024 //20mb
@@ -643,8 +653,16 @@ func HandleUploadRoomImage(chatServer *ChatServer) func(*fiber.Ctx) error {
 	}
 }
 
-func HandleDeleteRoom(chatServer *ChatServer) func(*fiber.Ctx) error {
+func HandleDeleteRoom(chatServer *ChatServer, protectedRids map[primitive.ObjectID]struct{}) func(*fiber.Ctx) error {
 	return func(c *fiber.Ctx) error {
+		_, ok := protectedRids[c.Locals("uid").(primitive.ObjectID)]
+		if ok {
+			c.Status(fiber.StatusUnauthorized)
+			return c.JSON(fiber.Map{
+				"message": "You cannot delete test rooms.",
+			})
+		}
+
 		if c.Params("id") == "" {
 			c.Status(fiber.StatusBadRequest)
 			return c.JSON(fiber.Map{

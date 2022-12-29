@@ -174,27 +174,37 @@ func HandleLogout(closeWsChan chan string) fiber.Handler {
 	}
 }
 
-func HandleDeleteUser(c *fiber.Ctx) error {
-	if c.Cookies("session_token", "") == "" {
-		c.Status(fiber.StatusUnauthorized)
+func HandleDeleteUser(protectedUids map[primitive.ObjectID]struct{}) func(*fiber.Ctx) error {
+	return func(c *fiber.Ctx) error {
+		_, ok := protectedUids[c.Locals("uid").(primitive.ObjectID)]
+		if ok {
+			c.Status(fiber.StatusUnauthorized)
+			return c.JSON(fiber.Map{
+				"message": "You cannot delete test accounts.",
+			})
+		}
+
+		if c.Cookies("session_token", "") == "" {
+			c.Status(fiber.StatusUnauthorized)
+			return c.JSON(fiber.Map{
+				"message": "You have no cookie",
+			})
+		}
+
+		_, err := db.UserCollection.DeleteOne(c.Context(), bson.M{"_id": c.Locals("uid").(primitive.ObjectID)})
+		if err != nil {
+			c.Status(fiber.StatusInternalServerError)
+			return c.JSON(fiber.Map{
+				"message": "Internal error",
+			})
+		}
+
+		c.ClearCookie("session_token")
+		c.Status(fiber.StatusOK)
 		return c.JSON(fiber.Map{
-			"message": "You have no cookie",
+			"message": "Deleted account",
 		})
 	}
-
-	_, err := db.UserCollection.DeleteOne(c.Context(), bson.M{"_id": c.Locals("uid").(primitive.ObjectID)})
-	if err != nil {
-		c.Status(fiber.StatusInternalServerError)
-		return c.JSON(fiber.Map{
-			"message": "Internal error",
-		})
-	}
-
-	c.ClearCookie("session_token")
-	c.Status(fiber.StatusOK)
-	return c.JSON(fiber.Map{
-		"message": "Deleted account",
-	})
 }
 
 func Welcome(c *fiber.Ctx) error {
@@ -327,8 +337,16 @@ func HandleRefresh(closeWsChan chan string) fiber.Handler {
 
 const maxPfpSize = 20 * 1024 * 1024 //20mb
 
-func HandleUpdatePfp(chatServer *ChatServer) func(*fiber.Ctx) error {
+func HandleUpdatePfp(chatServer *ChatServer, protectedUids map[primitive.ObjectID]struct{}) func(*fiber.Ctx) error {
 	return func(c *fiber.Ctx) error {
+		_, ok := protectedUids[c.Locals("uid").(primitive.ObjectID)]
+		if ok {
+			c.Status(fiber.StatusUnauthorized)
+			return c.JSON(fiber.Map{
+				"message": "You cannot modify the test accounts.",
+			})
+		}
+
 		file, err := c.FormFile("file")
 		if err != nil {
 			c.Status(fiber.StatusBadRequest)

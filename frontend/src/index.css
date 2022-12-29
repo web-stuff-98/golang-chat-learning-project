@@ -71,7 +71,7 @@ hr {
   --foreground: white;
   --background: #f0f1f3;
   --nav: rgb(9, 9, 9);
-  --header: linear-gradient(to top, rgb(16, 16, 16) 0%, black 100%);
+  --header: linear-gradient(to top, rgb(16, 16, 16) 0%, rgb(8,8,8) 100%);
 
   /* Component & Text Colours */
   --text-color: black;

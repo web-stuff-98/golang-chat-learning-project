@@ -7,12 +7,35 @@
   padding: var(--padding);
   text-align: center;
 
-  h1, h2 {
+  h1, h2, h3 {
     margin: 0;
+  }
+
+  h1 {
+    margin-top: var(--padding);
+  }
+
+  hr {
+    margin-top: var(--padding);
+  }
+
+  h3 {
+    padding: 0 var(--padding);
+    white-space: nowrap;
+    font-size: var(--font-xs);
+  }
+
+  h3:first-of-type {
+    margin-top: 0.5rem;
+  }
+  h3:last-of-type {
+    margin-bottom: 0.5rem;
   }
 
   p {
     margin: 0;
+    padding: calc(2 * var(--padding));
+    padding-top: 0;
   }
 
   .messages {
