@@ -1,5 +1,5 @@
 import classes from "../styles/pages/Room.module.scss";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import { useSocket } from "../context/SocketContext";
 import { joinRoom, leaveRoom } from "../services/rooms";
@@ -25,6 +25,7 @@ export default function Room() {
   const { cacheUserData } = useUsers();
   const navigate = useNavigate();
 
+  const msgsBottomRef = useRef<HTMLSpanElement>(null);
   const [joined, setJoined] = useState(false);
   const [messageInput, setMessageInput] = useState("");
   const [messages, setMessages] = useState<IMsg[]>([]);
@@ -34,9 +35,15 @@ export default function Room() {
     pen: false,
   });
 
+  useEffect(() => {
+    if (!messages) return;
+    msgsBottomRef.current?.scrollIntoView({ behavior: "auto" });
+  }, [messages]);
+
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     socket?.send(messageInput);
+    setMessageInput("");
     setMessages((p) => [
       ...p,
       { content: messageInput, timestamp: new Date(), uid: user?.ID! },
@@ -104,9 +111,11 @@ export default function Room() {
               This room has received no messages.
             </p>
           )}
+          <span aria-hidden={true} ref={msgsBottomRef} />
         </div>
         <form onSubmit={handleSubmit}>
           <input
+            value={messageInput}
             onChange={(e: ChangeEvent<HTMLInputElement>) =>
               setMessageInput(e.target.value)
             }

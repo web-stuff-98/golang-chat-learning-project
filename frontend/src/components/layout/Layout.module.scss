@@ -4,6 +4,47 @@
   padding-top: var(--nav-height);
   position: relative;
 
+  .backgroundOuterContainer {
+    position: fixed;
+    left: 0;
+    top: 0;
+    z-index: 96;
+    width: 100vw;
+    height: 100vh;
+
+    .backgroundInnerContainer {
+      position: fixed;
+      left: 0;
+      top: 0;
+      z-index: 96;
+      width: 100vw;
+      height: 100vh;
+
+      .background {
+        position: fixed;
+        z-index: 95;
+        width: 100vw;
+        height: 100vh;
+        top: 0;
+        left: 0;
+        background: var(--cross-background);
+        image-rendering: optimizeQuality;
+      }
+
+      .backgroundHover {
+        position: fixed;
+        z-index: 95;
+        width: 100%;
+        height: 100%;
+        top: 0;
+        left: 0;
+        background: var(--cross-background);
+        image-rendering: optimizeQuality;
+        filter: brightness(0.6) contrast(12) blur(1px) opacity(0.5);
+      }
+    }
+  }
+
   main {
     width: 100%;
     height: 100%;
@@ -11,9 +52,11 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    z-index: 98;
   }
 
   nav {
+    z-index: 98;
     top: 0;
     position: fixed;
     width: 100vw;

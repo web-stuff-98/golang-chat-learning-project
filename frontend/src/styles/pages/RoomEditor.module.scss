@@ -4,6 +4,7 @@
     align-items: center;
     justify-content: center;
     text-align: center;
+    width: calc(100% - var(--padding) * 2);
 
     gap:var(--padding);
     padding:var(--padding-medium);

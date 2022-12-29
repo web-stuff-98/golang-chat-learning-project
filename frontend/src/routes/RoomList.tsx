@@ -30,7 +30,11 @@ export default function RoomList() {
       setAllRooms(data ?? []);
       setOwnRooms(searchParams.get("own") ? true : false);
       setResMsg({
-        msg: data ? "" : "You have no rooms",
+        msg: data
+          ? ""
+          : searchParams.get("own")
+          ? "You have no rooms"
+          : "There are no rooms",
         err: false,
         pen: false,
       });

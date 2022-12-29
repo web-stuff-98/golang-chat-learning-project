@@ -5,6 +5,7 @@
   justify-content: center;
   gap: var(--padding);
   padding: var(--padding);
+  width: calc(100% - var(--padding) * 2);
 
   .messages {
     display: flex;

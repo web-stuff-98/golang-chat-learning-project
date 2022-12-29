@@ -16,7 +16,8 @@ code {
     monospace;
 }
 
-input, button {
+input,
+button {
   border-radius: var(--border-radius-medium);
   border: 1px solid var(--base-medium);
 }
@@ -81,4 +82,6 @@ h1 {
   --font-md: 1.125rem;
   --font-sm: 0.866rem;
   --font-xs: 0.775rem;
+
+  --cross-background: url(../public/crossbackground.png);
 }

@@ -5,6 +5,7 @@
   flex-direction: column;
   text-align: center;
   padding: var(--padding);
+  width: calc(100% - var(--padding) * 2);
 
   h1 {
     padding: 0;

@@ -93,6 +93,9 @@ func DecodeTokenAndGetUID(c *fiber.Ctx) (primitive.ObjectID, error) {
 		return primitive.NilObjectID, err
 	}
 	user, err := GetUserFromSID(c, issuer)
+	if err != nil {
+		return primitive.NilObjectID, err
+	}
 	return user["_id"].(primitive.ObjectID), nil
 }
 func AddSocketIdToSession(c *fiber.Ctx, socketId string) error {

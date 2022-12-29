@@ -1,6 +1,7 @@
 import { useState, useContext, createContext, useEffect } from "react";
 import type { ReactNode } from "react";
 import { makeRequest } from "../services/makeRequest";
+import { useNavigate } from "react-router-dom";
 
 export interface IUser {
   ID: string;
@@ -26,6 +27,7 @@ const AuthContext = createContext<{
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<IUser>();
+  const navigate = useNavigate();
 
   const login = async (username: string, password: string) => {
     const res = await makeRequest("/api/login", {
@@ -35,6 +37,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       withCredentials: true,
     });
     setUser(res);
+    navigate("/room/menu");
   };
 
   const register = async (username: string, password: string) => {
@@ -52,7 +55,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       method: "POST",
       withCredentials: true,
     });
-    setUser((_) => undefined);
+    setUser(undefined);
   };
 
   const deleteAccount = async () => {
@@ -60,7 +63,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       withCredentials: true,
       method: "POST",
     });
-    setUser((_) => undefined);
+    setUser(undefined);
   };
 
   useEffect(() => {
@@ -72,6 +75,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(data);
       })
       .catch((e) => {
+        setUser(undefined);
         console.warn(e);
       });
   }, []);
@@ -83,8 +87,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           method: "POST",
         });
       } catch (e) {
-        console.error(e);
         setUser(undefined);
+        console.error(e);
       }
       //Refresh token every 60 seconds. Token expires after 120 seconds.
     }, 60000);
