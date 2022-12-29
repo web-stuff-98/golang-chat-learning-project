@@ -3,8 +3,10 @@ package seed
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"image"
 	"image/jpeg"
+	"log"
 	"math/rand"
 
 	"github.com/nfnt/resize"
@@ -15,6 +17,9 @@ import (
 )
 
 func GenerateSeed(numUsers uint8, numRooms uint8) (uids map[primitive.ObjectID]struct{}, rids map[primitive.ObjectID]struct{}, err error) {
+	// Drop DB
+	db.DB.Drop(context.TODO())
+
 	// Initialize empty maps for user IDs and room IDs
 	uids = make(map[primitive.ObjectID]struct{})
 	rids = make(map[primitive.ObjectID]struct{})
@@ -57,7 +62,7 @@ func generateUser(i uint8) (uid primitive.ObjectID, err error) {
 		return primitive.NilObjectID, err
 	}
 	inserted, err := db.UserCollection.InsertOne(context.TODO(), models.User{
-		Username: "TestAcc" + string(i+1),
+		Username: fmt.Sprintf("TestAcc%d", i+1),
 		Password: "$2a$12$VyvB4n4y8eq6mX8of9A3OOv/FRSzxSe54sk6ptifiT82RMtGpPI4a",
 	})
 	if err != nil {
@@ -70,6 +75,7 @@ func generateUser(i uint8) (uid primitive.ObjectID, err error) {
 		return primitive.NilObjectID, err
 	}
 	buf = nil
+	log.Println("Generated user ", inserted.InsertedID.(primitive.ObjectID).Hex())
 	return inserted.InsertedID.(primitive.ObjectID), nil
 }
 
@@ -88,7 +94,7 @@ func generateRoom(i uint8, uid primitive.ObjectID) (rid primitive.ObjectID, err 
 		return primitive.NilObjectID, err
 	}
 	inserted, err := db.RoomCollection.InsertOne(context.TODO(), models.Room{
-		Name:   "Room " + string(i+1),
+		Name:   fmt.Sprintf("Room %d", i+1),
 		Author: uid,
 	})
 	if err != nil {
@@ -100,6 +106,7 @@ func generateRoom(i uint8, uid primitive.ObjectID) (rid primitive.ObjectID, err 
 	}); err != nil {
 		return primitive.NilObjectID, err
 	}
+	log.Println("Generated room ", inserted.InsertedID.(primitive.ObjectID).Hex())
 	return inserted.InsertedID.(primitive.ObjectID), nil
 }
 

@@ -152,7 +152,6 @@ func AddSocketIdToSession(c *fiber.Ctx, socketId string) error {
 }
 
 func DownloadImageURL(inputURL string) io.ReadCloser {
-	log.Println("Downloading img...")
 	_, err := url.Parse(inputURL)
 	if err != nil {
 		log.Fatal("Failed to parse image url")
@@ -167,13 +166,12 @@ func DownloadImageURL(inputURL string) io.ReadCloser {
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Println("Retreived image, %d bytes", resp.ContentLength)
 	return resp.Body
 }
 func DownloadRandomImage(pfp bool) io.ReadCloser {
 	if !pfp {
 		return DownloadImageURL("https://picsum.photos/300/200")
 	} else {
-		return DownloadImageURL("https://picsum.photos/200/200")
+		return DownloadImageURL("https://100k-faces.glitch.me/random-image")
 	}
 }
