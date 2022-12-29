@@ -87,7 +87,7 @@
         color: white;
         text-decoration: none;
         font-weight: 600;
-        font-size: min(1.5rem, 4vw);
+        font-size: min(1.25rem, 4vw);
       }
     }
   }
@@ -113,7 +113,6 @@
       font-size: 1.5rem;
       font-weight: 600;
       letter-spacing: 2px;
-      font-variant: small-caps;
       color: white;
 
       img {
@@ -126,7 +125,6 @@
     .darkToggle {
       background: none;
       border: none;
-      font-variant: small-caps;
       font-size: 1.5;
       height: 100%;
       align-items: flex-end;

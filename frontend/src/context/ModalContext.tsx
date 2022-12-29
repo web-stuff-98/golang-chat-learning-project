@@ -82,10 +82,8 @@ export const ModalProvider = ({ children }: { children: ReactNode }) => {
                 {/* Confirmation modal */}
                 {showModal && modalType === "Confirm" && (
                   <>
-                    <b className="text-center leading-5 pb-2">
-                      {modalData.msg}
-                    </b>
-                    <div className="w-full flex gap-2 items-center justify-center">
+                    <b>{modalData.msg}</b>
+                    <div className={classes.buttons}>
                       <button
                         aria-label="Cancel"
                         onClick={() => {

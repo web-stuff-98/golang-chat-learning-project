@@ -8,7 +8,7 @@
   width: calc(100% - var(--padding) * 2);
 
   hr {
-    margin-bottom: 0.75rem;
+    margin-bottom: 0.5rem;
   }
 
   .heading {
@@ -38,6 +38,7 @@
     font-size: var(--font-md);
     text-align: center;
     width: 100%;
+    border: 1px solid var(--text-color);
   }
 
   p {

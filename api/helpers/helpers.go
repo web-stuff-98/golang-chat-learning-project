@@ -18,6 +18,34 @@ import (
 
 /* ----------- HELPER/UTILITY FUNCTIONS ----------- */
 
+func AuthMiddleware(c *fiber.Ctx) error {
+	cookie := c.Cookies("session_token", "")
+	if cookie == "" {
+		c.Status(fiber.StatusUnauthorized)
+		return c.JSON(fiber.Map{
+			"message": "Unauthorized",
+		})
+	}
+	uid, err := DecodeTokenAndGetUID(c)
+	if err != nil {
+		c.Status(fiber.StatusUnauthorized)
+		return c.JSON(fiber.Map{
+			"message": "Unauthorized",
+		})
+	}
+	c.Locals("uid", uid)
+	return c.Next()
+}
+
+func WithUser(c *fiber.Ctx) error {
+	cookie := c.Cookies("session_token", "")
+	if cookie != "" {
+		uid, _ := DecodeTokenAndGetUID(c)
+		c.Locals("uid", uid)
+	}
+	return c.Next()
+}
+
 // keepSocketId is true when refreshing the token, because otherwise the socket_id wont be preserved when the token refreshes
 func GenerateToken(c *fiber.Ctx, uid primitive.ObjectID, expiresAt time.Time, keepSocketId bool) (string, error) {
 	socketId := ""

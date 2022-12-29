@@ -7,9 +7,11 @@ import ResMsg, { IResMsg } from "../components/ResMsg";
 import { makeRequest } from "../services/makeRequest";
 import ProtectedRoute from "./ProtectedRoute";
 import { BsGearWide } from "react-icons/bs";
+import { useModal } from "../context/ModalContext";
 
 export default function Settings() {
   const { user, deleteAccount, updateUserState } = useAuth();
+  const { openModal, closeModal } = useModal();
 
   const [file, setFile] = useState<File>();
   const fileRef = useRef<File>();
@@ -26,29 +28,48 @@ export default function Settings() {
     if (!file) return;
     setFile(file);
     fileRef.current = file;
-    updatePfp();
+    updatePfp(file.name);
   };
 
-  const updatePfp = async () => {
+  const updatePfp = async (name: string) => {
     try {
       if (!fileRef.current) throw new Error("No image selected");
-      setResMsg({ msg: "", err: false, pen: true });
-      const formData = new FormData();
-      formData.append("file", fileRef.current, "pfp");
-      await makeRequest("/api/updatepfp", {
-        method: "POST",
-        withCredentials: true,
-        data: formData,
+      openModal("Confirm", {
+        err: false,
+        pen: false,
+        msg: `Are you sure you want to use ${name} as your profile picture?`,
+        confirmationCallback: () => {
+          setResMsg({ msg: "", err: false, pen: true });
+          const formData = new FormData();
+          formData.append("file", fileRef.current as File, "pfp");
+          makeRequest("/api/updatepfp", {
+            method: "POST",
+            withCredentials: true,
+            data: formData,
+          })
+            .then(async () => {
+              try {
+                const b64 = await new Promise<string>((resolve, reject) => {
+                  const fr = new FileReader();
+                  fr.readAsDataURL(fileRef.current!);
+                  fr.onloadend = () => resolve(fr.result as string);
+                  fr.onabort = () => reject("Aborted");
+                  fr.onerror = () => reject("Error");
+                });
+                updateUserState({ base64pfp: b64 });
+                setResMsg({ msg: "", err: false, pen: false });
+              } catch (e) {
+                setResMsg({ msg: `${e}`, err: true, pen: false });
+              }
+              closeModal();
+            })
+            .catch((e) => {
+              setResMsg({ msg: `${e}`, err: true, pen: false });
+              closeModal();
+            });
+        },
+        cancellationCallback: () => {},
       });
-      const b64 = await new Promise<string>((resolve, reject) => {
-        const fr = new FileReader();
-        fr.readAsDataURL(fileRef.current!);
-        fr.onloadend = () => resolve(fr.result as string);
-        fr.onabort = () => reject("Aborted");
-        fr.onerror = () => reject("Error");
-      });
-      updateUserState({ base64pfp: b64 });
-      setResMsg({ msg: "", err: false, pen: false });
     } catch (e) {
       setResMsg({ msg: `${e}`, err: true, pen: false });
     }
@@ -79,7 +100,10 @@ export default function Settings() {
           }
           onClick={() => hiddenPfpInputRef.current?.click()}
         />
-        <p>You can click on your profile picture to select a new image. It will update automatically.</p>
+        <p>
+          You can click on your profile picture to select a new image. It will
+          update for other users automatically.
+        </p>
         <button
           onClick={() => deleteAccount()}
           className={classes.deleteAccountButton}

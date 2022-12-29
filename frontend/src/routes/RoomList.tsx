@@ -9,9 +9,11 @@ import IconBtn from "../components/IconBtn";
 import { IRoom, useRooms } from "../context/RoomsContext";
 import { useAuth } from "../context/AuthContext";
 import ProtectedRoute from "./ProtectedRoute";
+import { useModal } from "../context/ModalContext";
 
 export default function RoomList() {
   const navigate = useNavigate();
+  const { openModal, closeModal } = useModal();
   const { setAllRooms, rooms, setOwnRooms, deleteRoom } = useRooms();
   const { user } = useAuth();
 
@@ -94,7 +96,18 @@ export default function RoomList() {
                   )}
                   {room.author_id === user?.ID! && (
                     <IconBtn
-                      onClick={() => deleteRoom(room.ID)}
+                      onClick={() =>
+                        openModal("Confirm", {
+                          err: false,
+                          pen: false,
+                          msg: "Are you sure you want to delete this room?",
+                          confirmationCallback: () => {
+                            deleteRoom(room.ID);
+                            closeModal();
+                          },
+                          cancellationCallback: () => {},
+                        })
+                      }
                       Icon={AiFillDelete}
                       name="Delete room"
                       ariaLabel="Delete room"

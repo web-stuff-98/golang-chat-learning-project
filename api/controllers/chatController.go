@@ -300,14 +300,7 @@ func GetRooms(c *fiber.Ctx) error {
 	var rooms []models.Room
 	var findFilter bson.M = bson.M{}
 	if c.Query("own") == "true" {
-		uid, err := helpers.DecodeTokenAndGetUID(c)
-		if err != nil {
-			c.Status(fiber.StatusUnauthorized)
-			return c.JSON(fiber.Map{
-				"message": "Unauthorized",
-			})
-		}
-		findFilter = bson.M{"author_id": uid}
+		findFilter = bson.M{"author_id": c.Locals("uid").(primitive.ObjectID)}
 	}
 	cur, err := db.RoomCollection.Find(c.Context(), findFilter)
 	if err != nil {
@@ -401,34 +394,26 @@ func CreateRoom(c *fiber.Ctx) error {
 		})
 	}
 
-	uid, err := helpers.DecodeTokenAndGetUID(c)
-	if err != nil {
-		c.Status(fiber.StatusUnauthorized)
-		return c.JSON(fiber.Map{
-			"message": "Unauthorized",
-		})
-	}
-
-	found := db.RoomCollection.FindOne(c.Context(), bson.M{"author_id": uid, "name": bson.M{"$regex": body.Name, "$options": "i"}})
+	found := db.RoomCollection.FindOne(c.Context(), bson.M{"author_id": c.Locals("uid").(primitive.ObjectID), "name": bson.M{"$regex": body.Name, "$options": "i"}})
 	if found.Err() != nil {
 		if found.Err() != mongo.ErrNoDocuments {
 			c.Status(fiber.StatusInternalServerError)
 			return c.JSON(fiber.Map{
 				"message": "Internal error",
 			})
-		} else {
-			c.Status(fiber.StatusBadRequest)
-			return c.JSON(fiber.Map{
-				"message": "You already have another room by that name",
-			})
 		}
+	} else {
+		c.Status(fiber.StatusBadRequest)
+		return c.JSON(fiber.Map{
+			"message": "You already have another room by that name",
+		})
 	}
 
 	res, err := db.RoomCollection.InsertOne(c.Context(), models.Room{
 		Name:      body.Name,
 		CreatedAt: primitive.NewDateTimeFromTime(time.Now()),
 		UpdatedAt: primitive.NewDateTimeFromTime(time.Now()),
-		Author:    uid,
+		Author:    c.Locals("uid").(primitive.ObjectID),
 		Messages:  []models.Message{},
 	})
 
@@ -445,7 +430,7 @@ func CreateRoom(c *fiber.Ctx) error {
 		"name":       body.Name,
 		"created_at": primitive.NewDateTimeFromTime(time.Now()),
 		"updated_at": primitive.NewDateTimeFromTime(time.Now()),
-		"author_id":  uid.Hex(),
+		"author_id":  c.Locals("uid").(primitive.ObjectID).Hex(),
 	})
 }
 
@@ -467,14 +452,6 @@ func UpdateRoom(c *fiber.Ctx) error {
 		})
 	}
 
-	uid, err := helpers.DecodeTokenAndGetUID(c)
-	if err != nil {
-		c.Status(fiber.StatusUnauthorized)
-		return c.JSON(fiber.Map{
-			"message": "Unauthorized",
-		})
-	}
-
 	oid, err := primitive.ObjectIDFromHex(c.Params("id"))
 	if err != nil {
 		c.Status(fiber.StatusBadRequest)
@@ -483,7 +460,7 @@ func UpdateRoom(c *fiber.Ctx) error {
 		})
 	}
 
-	foundRoomsCursor, err := db.RoomCollection.Find(c.Context(), bson.M{"author_id": uid, "name": bson.M{"$regex": body.Name, "$options": "i"}})
+	foundRoomsCursor, err := db.RoomCollection.Find(c.Context(), bson.M{"author_id": c.Locals("uid").(primitive.ObjectID), "name": bson.M{"$regex": body.Name, "$options": "i"}})
 	if err != nil {
 		if err != mongo.ErrNoDocuments {
 			c.Status(fiber.StatusInternalServerError)
@@ -521,7 +498,7 @@ func UpdateRoom(c *fiber.Ctx) error {
 	} else {
 		var room models.Room
 		found.Decode(&room)
-		if room.Author != uid {
+		if room.Author != c.Locals("uid").(primitive.ObjectID) {
 			c.Status(fiber.StatusUnauthorized)
 			return c.JSON(fiber.Map{
 				"message": "Unauthorized",
@@ -563,14 +540,6 @@ func UploadRoomImage(chatServer *ChatServer) func(*fiber.Ctx) error {
 			})
 		}
 
-		uid, err := helpers.DecodeTokenAndGetUID(c)
-		if err != nil {
-			c.Status(fiber.StatusNotFound)
-			return c.JSON(fiber.Map{
-				"message": "Your session could not be found",
-			})
-		}
-
 		if c.Params("id") == "" {
 			c.Status(fiber.StatusBadRequest)
 			return c.JSON(fiber.Map{
@@ -600,7 +569,7 @@ func UploadRoomImage(chatServer *ChatServer) func(*fiber.Ctx) error {
 			})
 		}
 
-		if room.Author != uid {
+		if room.Author != c.Locals("uid").(primitive.ObjectID) {
 			c.Status(fiber.StatusUnauthorized)
 			return c.JSON(fiber.Map{
 				"message": "Unauthorized",
@@ -657,7 +626,7 @@ func UploadRoomImage(chatServer *ChatServer) func(*fiber.Ctx) error {
 
 		//send the updated chatroom image to all users through websocket api
 		for conn := range chatServer.connections {
-			if conn.Locals("uid").(primitive.ObjectID) != uid {
+			if conn.Locals("uid").(primitive.ObjectID) != c.Locals("uid").(primitive.ObjectID) {
 				conn.WriteJSON(fiber.Map{
 					"ID":          roomId.Hex(),
 					"base64image": "data:image/jpeg;base64," + base64.StdEncoding.EncodeToString(buf.Bytes()),
@@ -692,8 +661,6 @@ func DeleteRoom(chatServer *ChatServer) func(*fiber.Ctx) error {
 				"message": "Bad request",
 			})
 		}
-
-		var uid primitive.ObjectID
 
 		var room models.Room
 		found := db.RoomCollection.FindOne(c.Context(), bson.M{"_id": oid})
@@ -740,7 +707,7 @@ func DeleteRoom(chatServer *ChatServer) func(*fiber.Ctx) error {
 
 		//send the socket event that removes the chatroom for other users
 		for conn := range chatServer.connections {
-			if conn.Locals("uid").(primitive.ObjectID) != uid {
+			if conn.Locals("uid").(primitive.ObjectID) != c.Locals("uid").(primitive.ObjectID) {
 				conn.WriteJSON(fiber.Map{
 					"ID":         oid.Hex(),
 					"event_type": "chatroom_delete",
@@ -757,14 +724,6 @@ func DeleteRoom(chatServer *ChatServer) func(*fiber.Ctx) error {
 
 func JoinRoom(chatServer *ChatServer) func(*fiber.Ctx) error {
 	return func(c *fiber.Ctx) error {
-		uid, err := helpers.DecodeTokenAndGetUID(c)
-		if err != nil {
-			c.Status(fiber.StatusUnauthorized)
-			return c.JSON(fiber.Map{
-				"message": "Unauthorized",
-			})
-		}
-
 		if c.Params("id") == "" {
 			c.Status(fiber.StatusBadRequest)
 			return c.JSON(fiber.Map{
@@ -790,7 +749,7 @@ func JoinRoom(chatServer *ChatServer) func(*fiber.Ctx) error {
 			found.Decode(&room)
 		}
 
-		chatServer.registerRoomConn <- ChatRoomConnectionRegistration{id: c.Params("id"), uid: uid.Hex()}
+		chatServer.registerRoomConn <- ChatRoomConnectionRegistration{id: c.Params("id"), uid: c.Locals("uid").(primitive.ObjectID).Hex()}
 
 		c.Status(fiber.StatusOK)
 		return c.JSON(room)
@@ -799,14 +758,6 @@ func JoinRoom(chatServer *ChatServer) func(*fiber.Ctx) error {
 
 func LeaveRoom(chatServer *ChatServer) func(*fiber.Ctx) error {
 	return func(c *fiber.Ctx) error {
-		uid, err := helpers.DecodeTokenAndGetUID(c)
-		if err != nil {
-			c.Status(fiber.StatusUnauthorized)
-			return c.JSON(fiber.Map{
-				"message": "Unauthorized",
-			})
-		}
-
 		if c.Params("id") == "" {
 			c.Status(fiber.StatusBadRequest)
 			return c.JSON(fiber.Map{
@@ -831,7 +782,7 @@ func LeaveRoom(chatServer *ChatServer) func(*fiber.Ctx) error {
 			})
 		}
 
-		chatServer.unregisterRoomConn <- ChatRoomConnectionRegistration{id: c.Params("id"), uid: uid.Hex()}
+		chatServer.unregisterRoomConn <- ChatRoomConnectionRegistration{id: c.Params("id"), uid: c.Locals("uid").(primitive.ObjectID).Hex()}
 
 		println("Left room")
 

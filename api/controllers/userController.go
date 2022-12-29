@@ -183,15 +183,8 @@ func DeleteUser(c *fiber.Ctx) error {
 		})
 	}
 
-	uid, err := helpers.DecodeTokenAndGetUID(c)
+	_, err := db.UserCollection.DeleteOne(c.Context(), bson.M{"_id": c.Locals("uid").(primitive.ObjectID)})
 	if err != nil {
-		c.Status(fiber.StatusNotFound)
-		return c.JSON(fiber.Map{
-			"message": "Your session could not be found",
-		})
-	}
-
-	if db.UserCollection.DeleteOne(c.Context(), bson.M{"_id": uid}); err != nil {
 		c.Status(fiber.StatusInternalServerError)
 		return c.JSON(fiber.Map{
 			"message": "Internal error",
@@ -397,22 +390,14 @@ func UpdatePfp(chatServer *ChatServer) func(*fiber.Ctx) error {
 			})
 		}
 
-		uid, err := helpers.DecodeTokenAndGetUID(c)
-		if err != nil {
-			c.Status(fiber.StatusNotFound)
-			return c.JSON(fiber.Map{
-				"message": "Your session could not be found",
-			})
-		}
-
-		count, err := db.PfpCollection.CountDocuments(c.Context(), bson.M{"_id": uid})
+		count, err := db.PfpCollection.CountDocuments(c.Context(), bson.M{"_id": c.Locals("uid").(primitive.ObjectID)})
 		if count != 0 {
-			db.PfpCollection.UpdateByID(c.Context(), uid, models.Pfp{
+			db.PfpCollection.UpdateByID(c.Context(), c.Locals("uid").(primitive.ObjectID), models.Pfp{
 				Binary: primitive.Binary{Data: buf.Bytes()},
 			})
 		} else {
 			db.PfpCollection.InsertOne(c.Context(), models.Pfp{
-				ID:     uid,
+				ID:     c.Locals("uid").(primitive.ObjectID),
 				Binary: primitive.Binary{Data: buf.Bytes()},
 			})
 		}
@@ -420,9 +405,9 @@ func UpdatePfp(chatServer *ChatServer) func(*fiber.Ctx) error {
 		//find all the chatrooms the user is in and send the pfp update to other users through the websocket api
 		for i := range chatServer.chatRooms {
 			for conn := range chatServer.chatRooms[i].connections {
-				if conn.Locals("uid").(primitive.ObjectID) != uid {
+				if conn.Locals("uid").(primitive.ObjectID) != c.Locals("uid").(primitive.ObjectID) {
 					conn.WriteJSON(fiber.Map{
-						"ID":         uid.Hex(),
+						"ID":         c.Locals("uid").(primitive.ObjectID).Hex(),
 						"base64pfp":  "data:image/jpeg;base64," + base64.StdEncoding.EncodeToString(buf.Bytes()),
 						"event_type": "pfp_update",
 					})
