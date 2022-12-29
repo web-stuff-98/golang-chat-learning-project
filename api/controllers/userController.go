@@ -7,7 +7,6 @@ import (
 	"image"
 	"image/jpeg"
 	"image/png"
-	"log"
 	"strings"
 	"time"
 
@@ -156,16 +155,13 @@ func Login(c *fiber.Ctx) error {
 
 func Logout(closeWsChan chan string) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		log.Println("A")
 		if c.Cookies("session_token", "") == "" {
 			c.Status(fiber.StatusUnauthorized)
 			return c.JSON(fiber.Map{
 				"message": "You have no cookie",
 			})
 		}
-		log.Println("B")
 		err := closeWsConn(c, closeWsChan, c.Cookies("session_token"))
-		log.Println("C")
 		if err != nil {
 			c.ClearCookie("session_token")
 			c.Status(fiber.StatusInternalServerError)
@@ -173,7 +169,6 @@ func Logout(closeWsChan chan string) fiber.Handler {
 				"message": "Internal error",
 			})
 		}
-		log.Println("D")
 		c.ClearCookie("session_token")
 		c.Status(fiber.StatusOK)
 		return c.JSON(fiber.Map{"message": "Logged out"})
