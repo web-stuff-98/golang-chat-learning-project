@@ -11,12 +11,14 @@ import (
 	"github.com/web-stuff-98/golang-chat-learning-project/api/routes"
 	"github.com/web-stuff-98/golang-chat-learning-project/api/seed"
 	"github.com/web-stuff-98/golang-chat-learning-project/db"
+	"github.com/web-stuff-98/golang-chat-learning-project/db/models"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 func main() {
@@ -49,21 +51,54 @@ func main() {
 	}
 
 	/* -------- Clean up expired sessions still in the database every 960 seconds -------- */
-	cleanupTicker := time.NewTicker(960 * time.Second)
-	quitCleanup := make(chan struct{})
+	sessionCleanupTicker := time.NewTicker(960 * time.Second)
+	quitSessionCleanup := make(chan struct{})
 	go func() {
 		for {
 			select {
-			case <-cleanupTicker.C:
+			case <-sessionCleanupTicker.C:
 				db.SessionCollection.DeleteMany(context.TODO(), bson.M{"exp": bson.M{"$lt": primitive.NewDateTimeFromTime(time.Now())}})
-			case <-quitCleanup:
-				cleanupTicker.Stop()
+			case <-quitSessionCleanup:
+				sessionCleanupTicker.Stop()
+				return
+			}
+		}
+	}()
+	/* -------- Delete accounts older than 20 minutes -------- */
+	oldAccountCleanupTicker := time.NewTicker(120 * time.Second)
+	quitOldAccountCleanup := make(chan struct{})
+	go func() {
+		for {
+			select {
+			case <-oldAccountCleanupTicker.C:
+				findOpts := options.Find().SetBatchSize(10)
+				cursor, err := db.UserCollection.Find(context.TODO(), bson.D{}, findOpts)
+				if err != nil {
+					log.Fatal("CURSOR ERR : ", err)
+				}
+				for cursor.Next(context.TODO()) {
+					var user models.User
+					err := cursor.Decode(&user)
+					if err != nil {
+						log.Fatal("ERROR DECODING : ", err)
+					}
+					_, ok := uids[user.ID]
+					if !ok {
+						if user.ID.Timestamp().Add(time.Minute * 20).After(time.Now()) {
+							deleteUserChan <- user.ID.Hex()
+						}
+					}
+				}
+				defer cursor.Close(context.TODO())
+			case <-quitOldAccountCleanup:
+				oldAccountCleanupTicker.Stop()
 				return
 			}
 		}
 	}()
 	defer func() {
-		close(quitCleanup)
+		close(quitSessionCleanup)
+		close(quitOldAccountCleanup)
 	}()
 
 	go watchForDeletesInUserCollection(db.UserCollection, deleteUserChan)
