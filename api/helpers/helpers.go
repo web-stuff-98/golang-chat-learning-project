@@ -3,6 +3,10 @@ package helpers
 import (
 	"context"
 	"fmt"
+	"io"
+	"log"
+	"net/http"
+	"net/url"
 	"os"
 	"time"
 
@@ -145,4 +149,31 @@ func AddSocketIdToSession(c *fiber.Ctx, socketId string) error {
 	}
 	db.SessionCollection.UpdateOne(context.TODO(), bson.M{"_id": oid}, bson.D{{"$set", bson.D{{"socket_id", socketId}}}})
 	return nil
+}
+
+func DownloadImageURL(inputURL string) io.ReadCloser {
+	log.Println("Downloading img...")
+	_, err := url.Parse(inputURL)
+	if err != nil {
+		log.Fatal("Failed to parse image url")
+	}
+	client := http.Client{
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			req.URL.Opaque = req.URL.Path
+			return nil
+		},
+	}
+	resp, err := client.Get(inputURL)
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Println("Retreived image, %d bytes", resp.ContentLength)
+	return resp.Body
+}
+func DownloadRandomImage(pfp bool) io.ReadCloser {
+	if !pfp {
+		return DownloadImageURL("https://picsum.photos/300/200")
+	} else {
+		return DownloadImageURL("https://picsum.photos/200/200")
+	}
 }

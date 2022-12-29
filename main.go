@@ -9,6 +9,7 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/web-stuff-98/golang-chat-learning-project/api/controllers"
 	"github.com/web-stuff-98/golang-chat-learning-project/api/routes"
+	"github.com/web-stuff-98/golang-chat-learning-project/api/seed"
 	"github.com/web-stuff-98/golang-chat-learning-project/db"
 
 	"github.com/gofiber/fiber/v2"
@@ -19,16 +20,24 @@ import (
 )
 
 func main() {
-	err := godotenv.Load()
-	if err != nil {
-		log.Println("No .env file detected. Continuing as in production mode...")
-	} else {
-		log.Println("Loaded .env file. Continuing as in development mode...")
-	}
+	dotEnvErr := godotenv.Load()
 
 	app := fiber.New()
 
 	db.Connect()
+
+	var uids, rids []primitive.ObjectID
+	var seedErr error
+	if dotEnvErr != nil {
+		log.Println("No .env file detected. Continuing as in production mode...")
+		uids, rids, seedErr = seed.GenerateSeed(20, 100)
+	} else {
+		log.Println("Loaded .env file. Continuing as in development mode...")
+		uids, rids, seedErr = seed.GenerateSeed(5, 10)
+	}
+	if seedErr != nil {
+		log.Fatal("Seed error : ", seedErr)
+	}
 
 	app.Use(cors.New(cors.Config{
 		AllowCredentials: true,
@@ -59,7 +68,7 @@ func main() {
 
 	go watchForDeletesInUserCollection(db.UserCollection, deleteUserChan)
 
-	routes.Setup(app, chatServer, closeWsChan)
+	routes.Setup(app, chatServer, closeWsChan, uids, rids)
 	log.Fatal(app.Listen(":8080"))
 }
 

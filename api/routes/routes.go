@@ -3,11 +3,12 @@ package routes
 import (
 	"github.com/web-stuff-98/golang-chat-learning-project/api/controllers"
 	"github.com/web-stuff-98/golang-chat-learning-project/api/helpers"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	"github.com/gofiber/fiber/v2"
 )
 
-func Setup(app *fiber.App, chatServer *controllers.ChatServer, closeWsChan chan string) {
+func Setup(app *fiber.App, chatServer *controllers.ChatServer, closeWsChan chan string, protectedUids []primitive.ObjectID, protectedRids []primitive.ObjectID) {
 	app.Post("/api/welcome", controllers.Welcome)
 	app.Post("/api/user/login", controllers.HandleLogin)
 	app.Post("/api/user/register", controllers.HandleRegister)
