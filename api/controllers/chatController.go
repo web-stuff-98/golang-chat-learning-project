@@ -415,7 +415,7 @@ func CreateRoom(c *fiber.Ctx) error {
 		} else {
 			c.Status(fiber.StatusBadRequest)
 			return c.JSON(fiber.Map{
-				"message": "You already have a room by that name",
+				"message": "You already have another room by that name",
 			})
 		}
 	}
@@ -466,7 +466,6 @@ func UpdateRoom(c *fiber.Ctx) error {
 	uid, err := helpers.DecodeTokenAndGetUID(c)
 	if err != nil {
 		c.Status(fiber.StatusUnauthorized)
-		println("UID err")
 		return c.JSON(fiber.Map{
 			"message": "Unauthorized",
 		})
@@ -478,6 +477,28 @@ func UpdateRoom(c *fiber.Ctx) error {
 		return c.JSON(fiber.Map{
 			"message": "Invalid ID",
 		})
+	}
+
+	foundRoomsCursor, err := db.RoomCollection.Find(c.Context(), bson.M{"author_id": uid, "name": bson.M{"$regex": body.Name, "$options": "i"}})
+	if err != nil {
+		if err != mongo.ErrNoDocuments {
+			c.Status(fiber.StatusInternalServerError)
+			return c.JSON(fiber.Map{
+				"message": "Internal error",
+			})
+		}
+	} else {
+		for foundRoomsCursor.Next(c.Context()) {
+			var room models.Room
+			foundRoomsCursor.Decode(&room)
+			if room.ID != oid {
+				foundRoomsCursor.Close(c.Context())
+				c.Status(fiber.StatusBadRequest)
+				return c.JSON(fiber.Map{
+					"message": "You already have a room by that name",
+				})
+			}
+		}
 	}
 
 	found := db.RoomCollection.FindOne(c.Context(), bson.M{"_id": oid})
