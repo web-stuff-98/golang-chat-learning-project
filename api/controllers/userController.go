@@ -7,6 +7,7 @@ import (
 	"image"
 	"image/jpeg"
 	"image/png"
+	"log"
 	"strings"
 	"time"
 
@@ -27,7 +28,7 @@ import (
 // close websocket connection using sid
 func closeWsConn(c *fiber.Ctx, closeWsChan chan string, cookie string) error {
 	if cookie == "" {
-		return nil
+		return fmt.Errorf("No cookie")
 	}
 	issuer, err := helpers.DecodeTokenIssuer(c)
 	if err != nil {
@@ -155,19 +156,24 @@ func Login(c *fiber.Ctx) error {
 
 func Logout(closeWsChan chan string) fiber.Handler {
 	return func(c *fiber.Ctx) error {
+		log.Println("A")
 		if c.Cookies("session_token", "") == "" {
 			c.Status(fiber.StatusUnauthorized)
 			return c.JSON(fiber.Map{
 				"message": "You have no cookie",
 			})
 		}
+		log.Println("B")
 		err := closeWsConn(c, closeWsChan, c.Cookies("session_token"))
+		log.Println("C")
 		if err != nil {
+			c.ClearCookie("session_token")
 			c.Status(fiber.StatusInternalServerError)
 			return c.JSON(fiber.Map{
 				"message": "Internal error",
 			})
 		}
+		log.Println("D")
 		c.ClearCookie("session_token")
 		c.Status(fiber.StatusOK)
 		return c.JSON(fiber.Map{"message": "Logged out"})

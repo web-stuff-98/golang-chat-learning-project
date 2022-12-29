@@ -122,64 +122,68 @@ func NewServer() (*ChatServer, chan string, chan string, error) {
 	}()
 
 	go func() {
-		uid := <-closeWsChan
-		conn := chatServer.connectionsByUid[uid]
-		delete(chatServer.connectionsByUid, uid)
-		delete(chatServer.connections, conn)
+		for {
+			uid := <-closeWsChan
+			conn := chatServer.connectionsByUid[uid]
+			delete(chatServer.connectionsByUid, uid)
+			delete(chatServer.connections, conn)
+		}
 	}()
 
 	go func() {
-		uid := <-deleteUserChan
-		log.Println("Delete user chan : ", uid)
+		for {
+			uid := <-deleteUserChan
+			log.Println("Delete user chan : ", uid)
 
-		for conn := range chatServer.connections {
-			if conn.Locals("uid").(primitive.ObjectID).Hex() != uid {
-				conn.WriteJSON(fiber.Map{
-					"ID":         uid,
-					"event_type": "user_delete",
-				})
-			}
-		}
-
-		//iterate over each chatroom using mongodb cursor, delete rooms owned by the deleted user, and delete messages by the deleted user
-		findOpts := options.Find().SetBatchSize(10)
-		cursor, err := db.RoomCollection.Find(context.TODO(), bson.D{}, findOpts)
-		if err != nil {
-			log.Fatal("CURSOR ERR : ", err)
-		}
-
-		for cursor.Next(context.TODO()) {
-			var doc models.Room
-			err := cursor.Decode(&doc)
-			if err != nil {
-				log.Fatal("ERROR DECODING : ", err)
-			}
-			//delete rooms. cannot use deleteMany because the room image needs to be deleted too.
-			if doc.Author.Hex() == uid {
-				db.RoomCollection.DeleteOne(context.TODO(), bson.M{"_id": doc.ID})
-				db.RoomImageCollection.DeleteOne(context.TODO(), bson.M{"_id": doc.ID})
-			} else {
-				//delete users messages in room. chatgpt for pipeline.
-				pipeline := bson.D{
-					{"$set", bson.D{
-						{"messages", bson.A{
-							bson.D{
-								{"$filter", bson.D{
-									{"input", "$messages"},
-									{"as", "m"},
-									{"cond", bson.D{
-										{"$ne", bson.A{"$$m.uid", "user_id"}},
-									}},
-								}},
-							},
-						}},
-					}},
+			for conn := range chatServer.connections {
+				if conn.Locals("uid").(primitive.ObjectID).Hex() != uid {
+					conn.WriteJSON(fiber.Map{
+						"ID":         uid,
+						"event_type": "user_delete",
+					})
 				}
-				db.RoomCollection.UpdateOne(context.TODO(), bson.M{"_id": doc.ID}, pipeline)
 			}
-		}
 
-		closeWsChan <- uid
+			//iterate over each chatroom using mongodb cursor, delete rooms owned by the deleted user, and delete messages by the deleted user
+			findOpts := options.Find().SetBatchSize(10)
+			cursor, err := db.RoomCollection.Find(context.TODO(), bson.D{}, findOpts)
+			if err != nil {
+				log.Fatal("CURSOR ERR : ", err)
+			}
+
+			for cursor.Next(context.TODO()) {
+				var doc models.Room
+				err := cursor.Decode(&doc)
+				if err != nil {
+					log.Fatal("ERROR DECODING : ", err)
+				}
+				//delete rooms. cannot use deleteMany because the room image needs to be deleted too.
+				if doc.Author.Hex() == uid {
+					db.RoomCollection.DeleteOne(context.TODO(), bson.M{"_id": doc.ID})
+					db.RoomImageCollection.DeleteOne(context.TODO(), bson.M{"_id": doc.ID})
+				} else {
+					//delete users messages in room. chatgpt for pipeline.
+					pipeline := bson.D{
+						{"$set", bson.D{
+							{"messages", bson.A{
+								bson.D{
+									{"$filter", bson.D{
+										{"input", "$messages"},
+										{"as", "m"},
+										{"cond", bson.D{
+											{"$ne", bson.A{"$$m.uid", "user_id"}},
+										}},
+									}},
+								},
+							}},
+						}},
+					}
+					db.RoomCollection.UpdateOne(context.TODO(), bson.M{"_id": doc.ID}, pipeline)
+				}
+			}
+
+			closeWsChan <- uid
+		}
 	}()
 
 	return chatServer, closeWsChan, deleteUserChan, nil
