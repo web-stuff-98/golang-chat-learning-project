@@ -94,10 +94,10 @@ func Register(c *fiber.Ctx) error {
 		Expires: expiresAt,
 	})
 
-	c.Status(201)
+	c.Status(fiber.StatusOK)
 	return c.JSON(fiber.Map{
 		"username": &body.Username,
-		"_id":      inserted.InsertedID.(primitive.ObjectID).Hex(),
+		"ID":       inserted.InsertedID.(primitive.ObjectID).Hex(),
 	})
 }
 
@@ -161,7 +161,6 @@ func Logout(closeWsChan chan string) fiber.Handler {
 				"message": "You have no cookie",
 			})
 		}
-		c.ClearCookie("session_token")
 		err := closeWsConn(c, closeWsChan, c.Cookies("session_token"))
 		if err != nil {
 			c.Status(fiber.StatusInternalServerError)
@@ -169,8 +168,40 @@ func Logout(closeWsChan chan string) fiber.Handler {
 				"message": "Internal error",
 			})
 		}
-		return c.SendStatus(fiber.StatusOK)
+		c.ClearCookie("session_token")
+		c.Status(fiber.StatusOK)
+		return c.JSON(fiber.Map{"message": "Logged out"})
 	}
+}
+
+func DeleteUser(c *fiber.Ctx) error {
+	if c.Cookies("session_token", "") == "" {
+		c.Status(fiber.StatusUnauthorized)
+		return c.JSON(fiber.Map{
+			"message": "You have no cookie",
+		})
+	}
+
+	uid, err := helpers.DecodeTokenAndGetUID(c)
+	if err != nil {
+		c.Status(fiber.StatusNotFound)
+		return c.JSON(fiber.Map{
+			"message": "Your session could not be found",
+		})
+	}
+
+	if db.UserCollection.DeleteOne(c.Context(), bson.M{"_id": uid}); err != nil {
+		c.Status(fiber.StatusInternalServerError)
+		return c.JSON(fiber.Map{
+			"message": "Internal error",
+		})
+	}
+
+	c.ClearCookie("session_token")
+	c.Status(fiber.StatusOK)
+	return c.JSON(fiber.Map{
+		"message": "Deleted account",
+	})
 }
 
 func Welcome(c *fiber.Ctx) error {

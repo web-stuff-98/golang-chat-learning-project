@@ -44,9 +44,14 @@ export const InterfaceProvider = ({ children }: { children: ReactNode }) => {
     const handleResize = () => {
       const lo = 700;
       const hi = 1024;
-      const a = (Math.min(hi, Math.max(window.innerWidth, lo)) - lo) / (hi - lo);
-      const v = lerp(window.innerWidth / 6 / 2, window.innerWidth / 2 / 2, Math.pow(a, 0.8));
-      console.log(v)
+      const a =
+        (Math.min(hi, Math.max(window.innerWidth, lo)) - lo) / (hi - lo);
+      const v = lerp(
+        window.innerWidth / 6 / 2,
+        window.innerWidth / 2 / 2,
+        Math.pow(a, 0.8)
+      );
+      console.log(v);
       document.documentElement.style.setProperty(
         "--horizontal-whitespace",
         `${window.innerWidth < lo ? 0 : v}px`
@@ -64,17 +69,7 @@ export const InterfaceProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     if (!location) return;
-    if (
-      location.pathname === "/login" ||
-      location.pathname === "/register" ||
-      location.pathname === "/settings" ||
-      location.pathname.includes("/room/") ||
-      location.pathname === "/"
-    ) {
-      dispatch({ containerMode: "Modal" });
-    } else {
-      dispatch({ containerMode: "Feed" });
-    }
+    dispatch({ containerMode: "Modal" });
   }, [location]);
 
   return (

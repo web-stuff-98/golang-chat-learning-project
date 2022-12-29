@@ -1,6 +1,5 @@
 import classes from "../styles/LoginRegister.module.scss";
 import formClasses from "../styles/FormClasses.module.scss";
-
 import { useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import { useAuth } from "../context/AuthContext";

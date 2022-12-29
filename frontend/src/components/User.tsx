@@ -77,13 +77,19 @@ export default function User({
                 ? { backgroundImage: `url(${user.base64pfp})` }
                 : {}),
               ...(onClick ? { cursor: "pointer" } : {}),
+              ...(light ? { border: "1px solid white" } : {}),
             }}
             onClick={() => {
               if (onClick) onClick();
             }}
             className={classes.pfp}
           >
-            {!user.base64pfp && <AiOutlineUser className={classes.pfpIcon} />}
+            {!user.base64pfp && (
+              <AiOutlineUser
+                style={light ? { fill: "white" } : {}}
+                className={classes.pfpIcon}
+              />
+            )}
           </span>
           <div
             style={{

@@ -15,6 +15,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 func main() {
@@ -31,12 +32,12 @@ func main() {
 		AllowCredentials: true,
 	}))
 
-	chatServer, closeWsChan, err := controllers.NewServer()
+	chatServer, closeWsChan, deleteUserChan, err := controllers.NewServer()
 	if err != nil {
 		log.Fatal(fmt.Printf("Failed to setup chat server : %d", err))
 	}
 
-	/* Cleanup interval to delete expired sessions still in the db */
+	/* -------- Clean up expired sessions still in the database every 960 seconds -------- */
 	cleanupTicker := time.NewTicker(960 * time.Second)
 	quitCleanup := make(chan struct{})
 	go func() {
@@ -54,7 +55,34 @@ func main() {
 		close(quitCleanup)
 	}()
 
-	routes.Setup(app, chatServer, closeWsChan)
+	go watchForDeletesInUserCollection(db.UserCollection, deleteUserChan)
 
+	routes.Setup(app, chatServer, closeWsChan)
 	log.Fatal(app.Listen(":8080"))
+}
+
+// Watch for deletions in users collection... need to delete their messages and rooms and send the delete ws event to other users
+func watchForDeletesInUserCollection(collection *mongo.Collection, deleteUserChan chan string) {
+	userDeletePipeline := bson.D{
+		{
+			"$match", bson.D{
+				{"operationType", "delete"},
+			},
+		},
+	}
+	log.Println("Watching collection")
+	cs, err := collection.Watch(context.TODO(), mongo.Pipeline{userDeletePipeline})
+	if err != nil {
+		log.Fatal("CS ERR : ", err.Error())
+	}
+	for cs.Next(context.TODO()) {
+		var changeEv bson.M
+		err := cs.Decode(&changeEv)
+		if err != nil {
+			log.Fatal(err)
+		}
+		log.Println("Send deleted UID to deleteUserChan : ", changeEv["documentKey"].(bson.M)["_id"].(primitive.ObjectID).Hex())
+		uid := changeEv["documentKey"].(bson.M)["_id"].(primitive.ObjectID)
+		deleteUserChan <- uid.Hex()
+	}
 }

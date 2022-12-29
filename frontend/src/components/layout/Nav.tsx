@@ -42,7 +42,7 @@ export default function Nav() {
           </>
         )}
       </div>
-      {user && <User light reverse uid={user?.ID} user={user} />}
+      {user && <div className={classes.userContainer}><User light reverse uid={user?.ID} user={user} /></div>}
     </nav>
   );
 }

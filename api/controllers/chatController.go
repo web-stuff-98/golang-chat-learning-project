@@ -23,6 +23,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type InboundMessage struct {
@@ -83,9 +84,11 @@ type ChatRoomConnectionRegistration struct {
 	uid string
 }
 
-func NewServer() (*ChatServer, chan string, error) {
+func NewServer() (*ChatServer, chan string, chan string, error) {
 	//closeWsChan can be used to close websockets using the users id
 	closeWsChan := make(chan string)
+	//deleteUser channel is used in changestream, when a user is deleted delete all their messages, rooms and send ws event to other users0
+	deleteUserChan := make(chan string)
 
 	chatServer := &ChatServer{
 		connections:      make(map[*websocket.Conn]bool),
@@ -125,7 +128,61 @@ func NewServer() (*ChatServer, chan string, error) {
 		delete(chatServer.connections, conn)
 	}()
 
-	return chatServer, closeWsChan, nil
+	go func() {
+		uid := <-deleteUserChan
+		log.Println("Delete user chan : ", uid)
+
+		for conn := range chatServer.connections {
+			if conn.Locals("uid").(primitive.ObjectID).Hex() != uid {
+				conn.WriteJSON(fiber.Map{
+					"ID":         uid,
+					"event_type": "user_delete",
+				})
+			}
+		}
+
+		//iterate over each chatroom using mongodb cursor, delete rooms owned by the deleted user, and delete messages by the deleted user
+		findOpts := options.Find().SetBatchSize(10)
+		cursor, err := db.RoomCollection.Find(context.TODO(), bson.D{}, findOpts)
+		if err != nil {
+			log.Fatal("CURSOR ERR : ", err)
+		}
+
+		for cursor.Next(context.TODO()) {
+			var doc models.Room
+			err := cursor.Decode(&doc)
+			if err != nil {
+				log.Fatal("ERROR DECODING : ", err)
+			}
+			//delete rooms. cannot use deleteMany because the room image needs to be deleted too.
+			if doc.Author.Hex() == uid {
+				db.RoomCollection.DeleteOne(context.TODO(), bson.M{"_id": doc.ID})
+				db.RoomImageCollection.DeleteOne(context.TODO(), bson.M{"_id": doc.ID})
+			} else {
+				//delete users messages in room. chatgpt for pipeline.
+				pipeline := bson.D{
+					{"$set", bson.D{
+						{"messages", bson.A{
+							bson.D{
+								{"$filter", bson.D{
+									{"input", "$messages"},
+									{"as", "m"},
+									{"cond", bson.D{
+										{"$ne", bson.A{"$$m.uid", "user_id"}},
+									}},
+								}},
+							},
+						}},
+					}},
+				}
+				db.RoomCollection.UpdateOne(context.TODO(), bson.M{"_id": doc.ID}, pipeline)
+			}
+		}
+
+		closeWsChan <- uid
+	}()
+
+	return chatServer, closeWsChan, deleteUserChan, nil
 }
 
 /* ------------------ WS HTTP API ROUTES ------------------ */

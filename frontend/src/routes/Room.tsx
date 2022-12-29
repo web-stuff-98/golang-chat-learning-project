@@ -1,16 +1,15 @@
 import classes from "../styles/pages/Room.module.scss";
-
 import { useEffect, useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import { useSocket } from "../context/SocketContext";
-import { getRoom, joinRoom, leaveRoom } from "../services/rooms";
+import { joinRoom, leaveRoom } from "../services/rooms";
 import { useNavigate, useParams } from "react-router-dom";
 import ResMsg, { IResMsg } from "../components/ResMsg";
 import { useAuth } from "../context/AuthContext";
 import { useUsers } from "../context/UsersContext";
-import User from "../components/User";
 import Message from "../components/Message";
 import { useRooms } from "../context/RoomsContext";
+import ProtectedRoute from "./ProtectedRoute";
 
 export interface IMsg {
   content: string;
@@ -22,7 +21,7 @@ export default function Room() {
   const { socket } = useSocket();
   const { id } = useParams();
   const { user } = useAuth();
-  const { getRoomData, deleteRoomsByAuthor } = useRooms();
+  const { getRoomData } = useRooms();
   const { cacheUserData } = useUsers();
   const navigate = useNavigate();
 
@@ -79,7 +78,6 @@ export default function Room() {
           setMessages((old) => [...old.filter((msg) => msg.uid !== data.ID)]);
           if (r) {
             if (r.author_id === data.ID) {
-              deleteRoomsByAuthor(data.ID);
               navigate("/room/list");
             }
           }
@@ -94,35 +92,37 @@ export default function Room() {
   }, [socket]);
 
   return (
-    <div className={classes.container}>
-      <div className={classes.messages}>
-        {messages && messages.length && !resMsg.pen ? (
-          messages.map((msg) => (
-            <Message msg={msg} reverse={msg.uid !== user?.ID} />
-          ))
-        ) : (
-          <p className={classes.roomHasNoMessages}>
-            This room has received no messages.
-          </p>
-        )}
+    <ProtectedRoute user={user}>
+      <div className={classes.container}>
+        <div className={classes.messages}>
+          {messages && messages.length && !resMsg.pen ? (
+            messages.map((msg) => (
+              <Message msg={msg} reverse={msg.uid !== user?.ID} />
+            ))
+          ) : (
+            <p className={classes.roomHasNoMessages}>
+              This room has received no messages.
+            </p>
+          )}
+        </div>
+        <form onSubmit={handleSubmit}>
+          <input
+            onChange={(e: ChangeEvent<HTMLInputElement>) =>
+              setMessageInput(e.target.value)
+            }
+            type="text"
+          />
+          <button type="submit">Send</button>
+        </form>
+        <button
+          className={classes.backButton}
+          onClick={() => navigate("/room/list")}
+          type="button"
+        >
+          Back
+        </button>
+        <ResMsg resMsg={resMsg} />
       </div>
-      <form onSubmit={handleSubmit}>
-        <input
-          onChange={(e: ChangeEvent<HTMLInputElement>) =>
-            setMessageInput(e.target.value)
-          }
-          type="text"
-        />
-        <button type="submit">Send</button>
-      </form>
-      <button
-        className={classes.backButton}
-        onClick={() => navigate("/room/list")}
-        type="button"
-      >
-        Back
-      </button>
-      <ResMsg resMsg={resMsg} />
-    </div>
+    </ProtectedRoute>
   );
 }

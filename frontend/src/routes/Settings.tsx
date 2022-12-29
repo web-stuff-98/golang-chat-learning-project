@@ -5,9 +5,10 @@ import classes from "../styles/pages/Settings.module.scss";
 import { IUser, useAuth } from "../context/AuthContext";
 import ResMsg, { IResMsg } from "../components/ResMsg";
 import { makeRequest } from "../services/makeRequest";
+import ProtectedRoute from "./ProtectedRoute";
 
 export default function Settings() {
-  const { user, updateUserState } = useAuth();
+  const { user, deleteAccount, updateUserState } = useAuth();
 
   const [file, setFile] = useState<File>();
   const fileRef = useRef<File>();
@@ -54,26 +55,35 @@ export default function Settings() {
 
   const hiddenPfpInputRef = useRef<HTMLInputElement>(null);
   return (
-    <form className={classes.container}>
-      <h1>Settings</h1>
-      <input
-        onChange={handlePfpInput}
-        type="file"
-        ref={hiddenPfpInputRef}
-        accept=".jpeg,.jpg,.png"
-      />
-      <User
-        uid={user?.ID!}
-        user={
-          {
-            ...user,
-            ...(file ? { base64pfp: URL.createObjectURL(file) } : {}),
-          } as IUser
-        }
-        onClick={() => hiddenPfpInputRef.current?.click()}
-      />
-      <p>You can click on your profile to select a new image.</p>
-      <ResMsg resMsg={resMsg} />
-    </form>
+    <ProtectedRoute user={user}>
+      <form className={classes.container}>
+        <h1>Settings</h1>
+        <input
+          onChange={handlePfpInput}
+          type="file"
+          ref={hiddenPfpInputRef}
+          accept=".jpeg,.jpg,.png"
+        />
+        <User
+          uid={user?.ID!}
+          user={
+            {
+              ...user,
+              ...(file ? { base64pfp: URL.createObjectURL(file) } : {}),
+            } as IUser
+          }
+          onClick={() => hiddenPfpInputRef.current?.click()}
+        />
+        <p>You can click on your profile to select a new image.</p>
+        <button
+          onClick={() => deleteAccount()}
+          className={classes.deleteAccountButton}
+          type="button"
+        >
+          Delete account
+        </button>
+        <ResMsg resMsg={resMsg} />
+      </form>
+    </ProtectedRoute>
   );
 }

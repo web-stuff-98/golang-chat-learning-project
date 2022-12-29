@@ -12,6 +12,7 @@ const AuthContext = createContext<{
   user?: IUser;
   login: (username: string, password: string) => void;
   logout: () => void;
+  deleteAccount: () => void;
   register: (username: string, password: string) => void;
   updateUserState: (user: Partial<IUser>) => void;
 }>({
@@ -19,6 +20,7 @@ const AuthContext = createContext<{
   login: () => {},
   register: () => {},
   logout: () => {},
+  deleteAccount: () => {},
   updateUserState: () => {},
 });
 
@@ -50,22 +52,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       method: "POST",
       withCredentials: true,
     });
-    setUser(undefined);
+    setUser((_) => undefined);
+  };
+
+  const deleteAccount = async () => {
+    await makeRequest("/api/deleteacc", {
+      withCredentials: true,
+      method: "POST",
+    });
+    setUser((_) => undefined);
   };
 
   useEffect(() => {
-    if (!user) {
-      makeRequest("/api/refresh", {
-        withCredentials: true,
-        method: "POST",
+    makeRequest("/api/refresh", {
+      withCredentials: true,
+      method: "POST",
+    })
+      .then((data) => {
+        setUser(data);
       })
-        .then((data) => {
-          setUser(data);
-        })
-        .catch((e) => {
-          console.warn(e);
-        });
-    }
+      .catch((e) => {
+        console.warn(e);
+      });
+  }, []);
+  useEffect(() => {
     const i = setInterval(async () => {
       try {
         await makeRequest("/api/refresh", {
@@ -76,8 +86,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         console.error(e);
         setUser(undefined);
       }
-      //Refresh token every 110 seconds. Token expires after 120 seconds.
-    }, 110000);
+      //Refresh token every 60 seconds. Token expires after 120 seconds.
+    }, 60000);
     return () => {
       clearInterval(i);
     };
@@ -90,7 +100,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   return (
     <AuthContext.Provider
-      value={{ user, login, register, logout, updateUserState }}
+      value={{ user, login, register, logout, deleteAccount, updateUserState }}
     >
       {children}
     </AuthContext.Provider>

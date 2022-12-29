@@ -1,21 +1,22 @@
 import classes from "../styles/pages/RoomEditor.module.scss";
 import formClasses from "../styles/FormClasses.module.scss";
 import { useNavigate, useParams } from "react-router-dom";
-
 import { useRef, useState, useEffect } from "react";
 import type { FormEvent, ChangeEvent } from "react";
 import { createRoom, updateRoom, uploadRoomImage } from "../services/rooms";
 import ResMsg, { IResMsg } from "../components/ResMsg";
 import { useRooms } from "../context/RoomsContext";
+import ProtectedRoute from "./ProtectedRoute";
+import { useAuth } from "../context/AuthContext";
 
 export default function RoomEditor() {
   const { id } = useParams();
   const { rooms } = useRooms();
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   const [nameInput, setNameInput] = useState("");
   const [coverImageB64, setCoverImageB64] = useState("");
-  const [coverImageFile, setCoverImageFile] = useState<File>();
   const coverImageFileRef = useRef<File>();
 
   const [resMsg, setResMsg] = useState<IResMsg>({
@@ -68,7 +69,6 @@ export default function RoomEditor() {
         fr.onerror = () => reject();
       });
       setCoverImageB64(b64);
-      setCoverImageFile(file);
       coverImageFileRef.current = file;
     } catch (e) {
       setResMsg({ msg: "Image error", err: true, pen: false });
@@ -77,39 +77,41 @@ export default function RoomEditor() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   return (
-    <form onSubmit={handleSubmit} className={classes.container}>
-      <div className={formClasses.inputLabelWrapper}>
-        <label htmlFor="name">Room Name</label>
+    <ProtectedRoute user={user}>
+      <form onSubmit={handleSubmit} className={classes.container}>
+        <div className={formClasses.inputLabelWrapper}>
+          <label htmlFor="name">Room Name</label>
+          <input
+            id="name"
+            name="name"
+            value={nameInput}
+            onChange={(e: ChangeEvent<HTMLInputElement>) =>
+              setNameInput(e.target.value)
+            }
+          />
+        </div>
         <input
-          id="name"
-          name="name"
-          value={nameInput}
-          onChange={(e: ChangeEvent<HTMLInputElement>) =>
-            setNameInput(e.target.value)
-          }
+          ref={fileInputRef}
+          style={{ display: "none" }}
+          onChange={handleCoverImage}
+          accept=".jpeg,.jpg,.png"
+          type="file"
         />
-      </div>
-      <input
-        ref={fileInputRef}
-        style={{ display: "none" }}
-        onChange={handleCoverImage}
-        accept=".jpeg,.jpg,.png"
-        type="file"
-      />
-      <button onClick={() => fileInputRef.current?.click()} type="button">
-        Select image
-      </button>
-      <button type="submit">{id ? "Update room" : "Create room"}</button>
-      <button onClick={() => navigate("/room/menu")} type="button">
-        Back
-      </button>
-      {coverImageB64 && (
-        <div
-          style={{ backgroundImage: `url(${coverImageB64})` }}
-          className={classes.coverImage}
-        />
-      )}
-      <ResMsg resMsg={resMsg} />
-    </form>
+        <button onClick={() => fileInputRef.current?.click()} type="button">
+          Select image
+        </button>
+        <button type="submit">{id ? "Update room" : "Create room"}</button>
+        <button onClick={() => navigate("/room/menu")} type="button">
+          Back
+        </button>
+        {coverImageB64 && (
+          <div
+            style={{ backgroundImage: `url(${coverImageB64})` }}
+            className={classes.coverImage}
+          />
+        )}
+        <ResMsg resMsg={resMsg} />
+      </form>
+    </ProtectedRoute>
   );
 }

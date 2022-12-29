@@ -23,7 +23,8 @@ const SocketContext = createContext<{
 export const SocketProvider = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
   const { updateUserData, deleteUser } = useUsers();
-  const { updateRoomData, deleteRoom, ownRooms } = useRooms();
+  const { updateRoomData, deleteRoom, ownRooms, deleteRoomsByAuthor } =
+    useRooms();
   const [socket, setSocket] = useState<WebSocket>();
 
   useEffect(() => {
@@ -51,10 +52,11 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
         updateUserData(data);
       }
       if (data.event_type === "user_delete") {
-        deleteUser(data.ID)
+        deleteUser(data.ID);
+        deleteRoomsByAuthor(data.ID);
       }
       if (data.event_type === "chatroom_delete") {
-        deleteRoom(data.ID)
+        deleteRoom(data.ID);
       }
     };
 
