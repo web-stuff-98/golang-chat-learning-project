@@ -8,7 +8,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func Setup(app *fiber.App, chatServer *controllers.ChatServer, closeWsChan chan string, protectedUids []primitive.ObjectID, protectedRids []primitive.ObjectID) {
+func Setup(app *fiber.App, chatServer *controllers.ChatServer, closeWsChan chan string, protectedUids map[primitive.ObjectID]struct{}, protectedRids map[primitive.ObjectID]struct{}) {
 	app.Post("/api/welcome", controllers.Welcome)
 	app.Post("/api/user/login", controllers.HandleLogin)
 	app.Post("/api/user/register", controllers.HandleRegister)

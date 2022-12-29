@@ -14,10 +14,10 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-func GenerateSeed(numUsers uint8, numRooms uint8) (uids []primitive.ObjectID, rids []primitive.ObjectID, err error) {
-	// Initialize empty slices for user IDs and room IDs
-	uids = make([]primitive.ObjectID, 0, numUsers)
-	rids = make([]primitive.ObjectID, 0, numRooms)
+func GenerateSeed(numUsers uint8, numRooms uint8) (uids map[primitive.ObjectID]struct{}, rids map[primitive.ObjectID]struct{}, err error) {
+	// Initialize empty maps for user IDs and room IDs
+	uids = make(map[primitive.ObjectID]struct{})
+	rids = make(map[primitive.ObjectID]struct{})
 
 	// Generate users
 	for i := uint8(0); i < numUsers; i++ {
@@ -25,18 +25,18 @@ func GenerateSeed(numUsers uint8, numRooms uint8) (uids []primitive.ObjectID, ri
 		if err != nil {
 			return nil, nil, err
 		}
-		uids = append(uids, uid)
+		uids[uid] = struct{}{}
 	}
 
 	// Generate rooms
 	for i := uint8(0); i < numRooms; i++ {
-		// Choose a random user ID from the list of generated user IDs
-		uid := uids[rand.Intn(len(uids))]
+		// Choose a random user ID from the map of generated user IDs
+		uid := randomKey(uids)
 		rid, err := generateRoom(i, uid)
 		if err != nil {
 			return nil, nil, err
 		}
-		rids = append(rids, rid)
+		rids[rid] = struct{}{}
 	}
 
 	return uids, rids, nil
@@ -101,4 +101,12 @@ func generateRoom(i uint8, uid primitive.ObjectID) (rid primitive.ObjectID, err 
 		return primitive.NilObjectID, err
 	}
 	return inserted.InsertedID.(primitive.ObjectID), nil
+}
+
+func randomKey(m map[primitive.ObjectID]struct{}) primitive.ObjectID {
+	keys := make([]primitive.ObjectID, 0, len(m))
+	for key := range m {
+		keys = append(keys, key)
+	}
+	return keys[rand.Intn(len(keys))]
 }

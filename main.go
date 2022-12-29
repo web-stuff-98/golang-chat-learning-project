@@ -26,7 +26,7 @@ func main() {
 
 	db.Connect()
 
-	var uids, rids []primitive.ObjectID
+	var uids, rids map[primitive.ObjectID]struct{}
 	var seedErr error
 	if dotEnvErr != nil {
 		log.Println("No .env file detected. Continuing as in production mode...")
