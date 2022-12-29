@@ -60,7 +60,6 @@ export const InterfaceProvider = ({ children }: { children: ReactNode }) => {
         window.innerWidth / 1.866 / 2,
         Math.pow(a, 0.8)
       );
-      console.log(v);
       document.documentElement.style.setProperty(
         "--horizontal-whitespace",
         `${window.innerWidth < lo ? 0 : v}px`
