@@ -41,11 +41,30 @@ h1 {
   font-size: var(--font-lg);
 }
 
+hr {
+  margin: 0;
+  width: 100%;
+  border: none;
+  border-bottom: 1px solid var(--base-heavy);
+  mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    black 50%,
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    black 50%,
+    transparent 100%
+  );
+}
+
 :root {
   background: #f0f1f3;
 
   /* Component dimensions */
-  --nav-height: 3rem;
+  --nav-height: 2.666rem;
   --header-height: 4.75rem;
 
   /* Component & layout colours */
@@ -92,9 +111,6 @@ h1 {
 
 .darkMode {
   background: #0d0d0d;
-
-  /* Component dimensions */
-  --nav-height: 3rem;
 
   --nav: rgb(14, 14, 14);
 

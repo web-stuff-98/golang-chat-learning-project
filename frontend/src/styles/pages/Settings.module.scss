@@ -7,11 +7,15 @@
   padding: var(--padding);
   width: calc(100% - var(--padding) * 2);
 
+  hr {
+    margin-bottom: 0.75rem;
+  }
+
   .heading {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap:var(--padding);
+    gap: var(--padding);
     margin-bottom: var(--padding);
     svg {
       width: var(--font-lg);
@@ -21,26 +25,6 @@
       padding: 0;
       margin: 0;
     }
-  }
-
-  hr {
-    margin: 0;
-    margin-bottom: 0.75rem;
-    width: 100%;
-    border: none;
-    border-bottom: 1px solid var(--base-heavy);
-    mask-image: linear-gradient(
-      to right,
-      transparent 0%,
-      black 50%,
-      transparent 100%
-    );
-    -webkit-mask-image: linear-gradient(
-      to right,
-      transparent 0%,
-      black 50%,
-      transparent 100%
-    );
   }
 
   input {

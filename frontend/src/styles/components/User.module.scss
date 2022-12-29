@@ -5,10 +5,10 @@
   gap: var(--padding-medium);
 
   .pfp {
-    width: 2.366rem;
-    height: 2.366rem;
-    min-width: 2.366rem;
-    min-height: 2.366rem;
+    width: 2rem;
+    height: 2rem;
+    min-width: 2rem;
+    min-height: 2rem;
     border-radius: 100%;
     border: 1px solid var(--base-medium);
     display: flex;
@@ -35,7 +35,7 @@
       flex-direction: column;
       justify-content: flex-start;
       span {
-        font-size: 0.725rem;
+        font-size: 0.675rem;
         line-height: 0.866;
       }
     }
