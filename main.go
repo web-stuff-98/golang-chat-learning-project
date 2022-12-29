@@ -64,7 +64,7 @@ func main() {
 			}
 		}
 	}()
-	/* -------- Delete accounts older than 20 minutes -------- */
+	/* -------- Delete accounts older than 20 minutes (changestream event will be triggered deleting the users rooms and messages also) -------- */
 	oldAccountCleanupTicker := time.NewTicker(120 * time.Second)
 	quitOldAccountCleanup := make(chan struct{})
 	go func() {
