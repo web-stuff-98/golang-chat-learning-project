@@ -57,15 +57,23 @@ export default function Settings() {
                   fr.onerror = () => reject("Error");
                 });
                 updateUserState({ base64pfp: b64 });
-                setResMsg({ msg: "", err: false, pen: false });
+                closeModal();
               } catch (e) {
-                setResMsg({ msg: `${e}`, err: true, pen: false });
+                openModal("Message", {
+                  err: true,
+                  msg: `${e}`,
+                  pen: false,
+                });
               }
-              closeModal();
+              setResMsg({ msg: "", err: false, pen: false });
             })
             .catch((e) => {
-              setResMsg({ msg: `${e}`, err: true, pen: false });
-              closeModal();
+              openModal("Message", {
+                err: true,
+                msg: `${e}`,
+                pen: false,
+              });
+              setResMsg({ msg: "", err: false, pen: false });
             });
         },
         cancellationCallback: () => {},
@@ -105,7 +113,17 @@ export default function Settings() {
               err: false,
               pen: false,
               msg: "Are you sure you want to delete your account?",
-              confirmationCallback: () => deleteAccount(),
+              confirmationCallback: async () => {
+                try {
+                  await deleteAccount();
+                } catch (e) {
+                  openModal("Message", {
+                    err: true,
+                    pen: false,
+                    msg: `${e}`,
+                  });
+                }
+              },
               cancellationCallback: () => {},
             })
           }

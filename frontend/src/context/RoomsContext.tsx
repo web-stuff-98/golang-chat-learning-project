@@ -12,7 +12,7 @@ export interface IRoom {
 const RoomsContext = createContext<{
   rooms: IRoom[];
   updateRoomData: (data: Omit<Partial<IRoom>, "event_type">) => void;
-  deleteRoom: (id: string) => void;
+  deleteRoom: (id: string) => Promise<void>;
   setAllRooms: (rooms: IRoom[]) => void;
   ownRooms: boolean;
   setOwnRooms: (to: boolean) => void;
@@ -21,7 +21,7 @@ const RoomsContext = createContext<{
 }>({
   rooms: [],
   updateRoomData: () => {},
-  deleteRoom: () => {},
+  deleteRoom: () => new Promise((req, res) => {}),
   setAllRooms: () => {},
   ownRooms: false,
   setOwnRooms: () => {},
@@ -56,11 +56,17 @@ export const RoomsProvider = ({ children }: { children: ReactNode }) => {
   const setAllRooms = (rooms: IRoom[]) => setRooms(rooms);
 
   const deleteRoom = (id: string) => {
-    makeRequest(`/api/room/${id}`, { method: "DELETE", withCredentials: true })
-      .then(() => {
-        setRooms((old) => [...old.filter((r) => r.ID !== id)]);
+    return new Promise<void>((resolve, reject) =>
+      makeRequest(`/api/room/${id}`, {
+        method: "DELETE",
+        withCredentials: true,
       })
-      .catch(() => {});
+        .then(() => {
+          setRooms((old) => [...old.filter((r) => r.ID !== id)]);
+          resolve();
+        })
+        .catch((e) => reject(e))
+    );
   };
 
   return (

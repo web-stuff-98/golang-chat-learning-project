@@ -101,9 +101,17 @@ export default function RoomList() {
                           err: false,
                           pen: false,
                           msg: "Are you sure you want to delete this room?",
-                          confirmationCallback: () => {
-                            deleteRoom(room.ID);
-                            closeModal();
+                          confirmationCallback: async () => {
+                            try {
+                              await deleteRoom(room.ID);
+                              closeModal();
+                            } catch (e) {
+                              openModal("Message", {
+                                err: true,
+                                pen: false,
+                                msg: `${e}`,
+                              });
+                            }
                           },
                           cancellationCallback: () => {},
                         })
