@@ -37,7 +37,7 @@ func Connect() {
 	}
 	log.Println("MongoDB connected")
 	MongoClient = client
-	DB = client.Database("golang-chat-learning-project")
+	DB = client.Database(os.Getenv("MONGODB_DB"))
 
 	UserCollection = DB.Collection("users")
 	PfpCollection = DB.Collection("pfps")

@@ -8,7 +8,7 @@ export default function Header() {
   return (
     <header>
       <div className={classes.logoImg}>
-        <img alt="Go gopher - by Renee French. reneefrench.blogspot.com" src="go-mascot-wiki-darkmode.png" />
+        <img alt="Go gopher - by Renee French. reneefrench.blogspot.com" src="go-mascot-wiki-colour.png" />
         Go-Chat
       </div>
       <button

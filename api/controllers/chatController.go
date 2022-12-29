@@ -133,7 +133,6 @@ func NewServer() (*ChatServer, chan string, chan string, error) {
 	go func() {
 		for {
 			uid := <-deleteUserChan
-			log.Println("Delete user chan : ", uid)
 
 			for conn := range chatServer.connections {
 				if conn.Locals("uid").(primitive.ObjectID).Hex() != uid {
@@ -180,6 +179,8 @@ func NewServer() (*ChatServer, chan string, chan string, error) {
 					}
 					db.RoomCollection.UpdateOne(context.TODO(), bson.M{"_id": doc.ID}, pipeline)
 				}
+				//delete users pfp
+				db.PfpCollection.DeleteOne(context.TODO(), bson.M{"_id": doc.ID})
 			}
 
 			closeWsChan <- uid
@@ -248,11 +249,11 @@ func HandleWsConn(chatServer *ChatServer, closeWsChan chan string) func(*fiber.C
 				err error
 			)
 			if _, msg, err = c.ReadMessage(); err != nil {
-				if !websocket.IsCloseError(err) {
+				/*if !websocket.IsCloseError(err) {
 					log.Println("ReadErr: ", err)
 				} else {
 					log.Println("Websocket connection closed")
-				}
+				}*/
 				break
 			}
 			chatServer.inbound <- InboundMessage{
@@ -280,7 +281,6 @@ func HandleWsConn(chatServer *ChatServer, closeWsChan chan string) func(*fiber.C
 							Uid:       c.Locals("uid").(primitive.ObjectID).Hex(),
 							Timestamp: primitive.NewDateTimeFromTime(time.Now()),
 						}
-						println("Push array")
 						db.RoomCollection.UpdateOne(context.TODO(), bson.M{"_id": oid}, bson.M{"$push": bson.M{"messages": msg}})
 					}
 				}
@@ -304,7 +304,6 @@ func GetRooms(c *fiber.Ctx) error {
 	}
 	cur, err := db.RoomCollection.Find(c.Context(), findFilter)
 	if err != nil {
-		log.Println("Error finding in rooms collection : ", err)
 		c.Status(fiber.StatusInternalServerError)
 		return c.JSON(fiber.Map{
 			"message": "Internal error",
@@ -621,7 +620,6 @@ func UploadRoomImage(chatServer *ChatServer) func(*fiber.Ctx) error {
 				ID:     roomId,
 				Binary: primitive.Binary{Data: buf.Bytes()},
 			})
-			println("Created image")
 		}
 
 		//send the updated chatroom image to all users through websocket api
@@ -783,8 +781,6 @@ func LeaveRoom(chatServer *ChatServer) func(*fiber.Ctx) error {
 		}
 
 		chatServer.unregisterRoomConn <- ChatRoomConnectionRegistration{id: c.Params("id"), uid: c.Locals("uid").(primitive.ObjectID).Hex()}
-
-		println("Left room")
 
 		c.Status(fiber.StatusOK)
 		return c.JSON(fiber.Map{

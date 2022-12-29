@@ -52,7 +52,6 @@ func Register(c *fiber.Ctx) error {
 	count, err := db.UserCollection.CountDocuments(c.Context(), bson.M{"username": bson.M{"$regex": body.Username, "$options": "i"}})
 
 	if err != nil {
-		println(err)
 		c.Status(fiber.StatusInternalServerError)
 		return c.JSON(fiber.Map{
 			"message": "Internal error",
@@ -308,7 +307,6 @@ func Refresh(closeWsChan chan string) fiber.Handler {
 		expiresAt := time.Now().Add(120 * time.Second)
 		token, err := helpers.GenerateToken(c, user["_id"].(primitive.ObjectID), expiresAt, true)
 		if err != nil {
-			fmt.Println(err)
 			c.Status(fiber.StatusInternalServerError)
 			return c.JSON(fiber.Map{
 				"message": "There was an error refreshing your token",

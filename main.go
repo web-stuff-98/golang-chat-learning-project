@@ -21,7 +21,9 @@ import (
 func main() {
 	err := godotenv.Load()
 	if err != nil {
-		println("No .env file detected. env vars should be set in docker container for production. Continuing...")
+		log.Println("No .env file detected. Continuing as in production mode...")
+	} else {
+		log.Println("Loaded .env file. Continuing as in development mode...")
 	}
 
 	app := fiber.New()
@@ -70,7 +72,6 @@ func watchForDeletesInUserCollection(collection *mongo.Collection, deleteUserCha
 			},
 		},
 	}
-	log.Println("Watching collection")
 	cs, err := collection.Watch(context.TODO(), mongo.Pipeline{userDeletePipeline})
 	if err != nil {
 		log.Fatal("CS ERR : ", err.Error())
@@ -81,7 +82,6 @@ func watchForDeletesInUserCollection(collection *mongo.Collection, deleteUserCha
 		if err != nil {
 			log.Fatal(err)
 		}
-		log.Println("Send deleted UID to deleteUserChan : ", changeEv["documentKey"].(bson.M)["_id"].(primitive.ObjectID).Hex())
 		uid := changeEv["documentKey"].(bson.M)["_id"].(primitive.ObjectID)
 		deleteUserChan <- uid.Hex()
 	}

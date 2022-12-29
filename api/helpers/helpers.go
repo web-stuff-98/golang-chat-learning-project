@@ -3,7 +3,6 @@ package helpers
 import (
 	"context"
 	"fmt"
-	"log"
 	"os"
 	"time"
 
@@ -145,6 +144,5 @@ func AddSocketIdToSession(c *fiber.Ctx, socketId string) error {
 		return fmt.Errorf("Could not find session")
 	}
 	db.SessionCollection.UpdateOne(context.TODO(), bson.M{"_id": oid}, bson.D{{"$set", bson.D{{"socket_id", socketId}}}})
-	log.Println("Added socket Id to session ", socketId)
 	return nil
 }

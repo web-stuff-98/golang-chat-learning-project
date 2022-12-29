@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import type { ChangeEvent } from "react";
 import User from "../components/User";
 import classes from "../styles/pages/Settings.module.scss";
-import { IUser, useAuth } from "../context/AuthContext";
+import { useAuth } from "../context/AuthContext";
 import ResMsg, { IResMsg } from "../components/ResMsg";
 import { makeRequest } from "../services/makeRequest";
 import ProtectedRoute from "./ProtectedRoute";
@@ -92,12 +92,7 @@ export default function Settings() {
         />
         <User
           uid={user?.ID!}
-          user={
-            {
-              ...user,
-              ...(file ? { base64pfp: URL.createObjectURL(file) } : {}),
-            } as IUser
-          }
+          user={user}
           onClick={() => hiddenPfpInputRef.current?.click()}
         />
         <p>
@@ -105,7 +100,15 @@ export default function Settings() {
           update for other users automatically.
         </p>
         <button
-          onClick={() => deleteAccount()}
+          onClick={() =>
+            openModal("Confirm", {
+              err: false,
+              pen: false,
+              msg: "Are you sure you want to delete your account?",
+              confirmationCallback: () => deleteAccount(),
+              cancellationCallback: () => {},
+            })
+          }
           className={classes.deleteAccountButton}
           type="button"
         >
