@@ -436,14 +436,6 @@ func HandleCreateRoom(c *fiber.Ctx) error {
 // Updates the room name only
 func HandleUpdateRoom(protectedRids map[primitive.ObjectID]struct{}) func(*fiber.Ctx) error {
 	return func(c *fiber.Ctx) error {
-		_, ok := protectedRids[c.Locals("uid").(primitive.ObjectID)]
-		if ok {
-			c.Status(fiber.StatusUnauthorized)
-			return c.JSON(fiber.Map{
-				"message": "You cannot modify test rooms.",
-			})
-		}
-
 		if c.Params("id") == "" {
 			c.Status(fiber.StatusBadRequest)
 			return c.JSON(fiber.Map{
@@ -465,6 +457,14 @@ func HandleUpdateRoom(protectedRids map[primitive.ObjectID]struct{}) func(*fiber
 			c.Status(fiber.StatusBadRequest)
 			return c.JSON(fiber.Map{
 				"message": "Invalid ID",
+			})
+		}
+
+		_, ok := protectedRids[oid]
+		if ok {
+			c.Status(fiber.StatusUnauthorized)
+			return c.JSON(fiber.Map{
+				"message": "You cannot modify test rooms.",
 			})
 		}
 
@@ -655,14 +655,6 @@ func HandleUploadRoomImage(chatServer *ChatServer) func(*fiber.Ctx) error {
 
 func HandleDeleteRoom(chatServer *ChatServer, protectedRids map[primitive.ObjectID]struct{}) func(*fiber.Ctx) error {
 	return func(c *fiber.Ctx) error {
-		_, ok := protectedRids[c.Locals("uid").(primitive.ObjectID)]
-		if ok {
-			c.Status(fiber.StatusUnauthorized)
-			return c.JSON(fiber.Map{
-				"message": "You cannot delete test rooms.",
-			})
-		}
-
 		if c.Params("id") == "" {
 			c.Status(fiber.StatusBadRequest)
 			return c.JSON(fiber.Map{
@@ -675,6 +667,14 @@ func HandleDeleteRoom(chatServer *ChatServer, protectedRids map[primitive.Object
 			c.Status(fiber.StatusBadRequest)
 			return c.JSON(fiber.Map{
 				"message": "Bad request",
+			})
+		}
+
+		_, ok := protectedRids[oid]
+		if ok {
+			c.Status(fiber.StatusUnauthorized)
+			return c.JSON(fiber.Map{
+				"message": "You cannot delete test rooms.",
 			})
 		}
 
