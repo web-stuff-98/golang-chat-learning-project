@@ -30,7 +30,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const navigate = useNavigate();
 
   const login = async (username: string, password: string) => {
-    const res = await makeRequest("/api/login", {
+    const res = await makeRequest("/api/user/login", {
       method: "POST",
       headers: { "Content-Type": "application/json;charset=UTF-8" },
       data: { username, password },
@@ -41,7 +41,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const register = async (username: string, password: string) => {
-    const res = await makeRequest("/api/register", {
+    const res = await makeRequest("/api/user/register", {
       method: "POST",
       headers: { "Content-Type": "application/json;charset=UTF-8" },
       data: { username, password },
@@ -51,7 +51,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const logout = async () => {
-    await makeRequest("/api/logout", {
+    await makeRequest("/api/user/logout", {
       method: "POST",
       withCredentials: true,
     });
@@ -59,7 +59,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const deleteAccount = async () => {
-    await makeRequest("/api/deleteacc", {
+    await makeRequest("/api/user/deleteacc", {
       withCredentials: true,
       method: "POST",
     });
@@ -67,7 +67,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   useEffect(() => {
-    makeRequest("/api/refresh", {
+    makeRequest("/api/user/refresh", {
       withCredentials: true,
       method: "POST",
     })
@@ -82,7 +82,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const i = setInterval(async () => {
       try {
-        await makeRequest("/api/refresh", {
+        await makeRequest("/api/user/refresh", {
           withCredentials: true,
           method: "POST",
         });

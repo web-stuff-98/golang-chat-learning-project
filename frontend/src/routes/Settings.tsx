@@ -42,7 +42,7 @@ export default function Settings() {
           setResMsg({ msg: "", err: false, pen: true });
           const formData = new FormData();
           formData.append("file", fileRef.current as File, "pfp");
-          makeRequest("/api/updatepfp", {
+          makeRequest("/api/user/updatepfp", {
             method: "POST",
             withCredentials: true,
             data: formData,

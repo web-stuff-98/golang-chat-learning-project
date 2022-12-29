@@ -296,7 +296,7 @@ func HandleWsConn(chatServer *ChatServer, closeWsChan chan string) func(*fiber.C
 
 /* ------------------ HTTP API ROUTES ------------------ */
 
-func GetRooms(c *fiber.Ctx) error {
+func HandleGetRooms(c *fiber.Ctx) error {
 	var rooms []models.Room
 	var findFilter bson.M = bson.M{}
 	if c.Query("own") == "true" {
@@ -341,7 +341,7 @@ func GetRooms(c *fiber.Ctx) error {
 	return c.JSON(rooms)
 }
 
-func GetRoom(c *fiber.Ctx) error {
+func HandleGetRoom(c *fiber.Ctx) error {
 	if c.Params("id") == "" {
 		c.Status(fiber.StatusBadRequest)
 		return c.JSON(fiber.Map{
@@ -384,7 +384,7 @@ func GetRoom(c *fiber.Ctx) error {
 	return c.JSON(room)
 }
 
-func CreateRoom(c *fiber.Ctx) error {
+func HandleCreateRoom(c *fiber.Ctx) error {
 	var body validator.Room
 	if err := c.BodyParser(&body); err != nil {
 		c.Status(fiber.StatusBadRequest)
@@ -434,7 +434,7 @@ func CreateRoom(c *fiber.Ctx) error {
 }
 
 // Updates the room name only
-func UpdateRoom(c *fiber.Ctx) error {
+func HandleUpdateRoom(c *fiber.Ctx) error {
 	if c.Params("id") == "" {
 		c.Status(fiber.StatusBadRequest)
 		return c.JSON(fiber.Map{
@@ -515,7 +515,7 @@ func UpdateRoom(c *fiber.Ctx) error {
 
 const maxRoomImageSize = 20 * 1024 * 1024 //20mb
 
-func UploadRoomImage(chatServer *ChatServer) func(*fiber.Ctx) error {
+func HandleUploadRoomImage(chatServer *ChatServer) func(*fiber.Ctx) error {
 	return func(c *fiber.Ctx) error {
 		file, err := c.FormFile("file")
 		if err != nil {
@@ -643,7 +643,7 @@ func UploadRoomImage(chatServer *ChatServer) func(*fiber.Ctx) error {
 	}
 }
 
-func DeleteRoom(chatServer *ChatServer) func(*fiber.Ctx) error {
+func HandleDeleteRoom(chatServer *ChatServer) func(*fiber.Ctx) error {
 	return func(c *fiber.Ctx) error {
 		if c.Params("id") == "" {
 			c.Status(fiber.StatusBadRequest)
@@ -720,7 +720,7 @@ func DeleteRoom(chatServer *ChatServer) func(*fiber.Ctx) error {
 	}
 }
 
-func JoinRoom(chatServer *ChatServer) func(*fiber.Ctx) error {
+func HandleJoinRoom(chatServer *ChatServer) func(*fiber.Ctx) error {
 	return func(c *fiber.Ctx) error {
 		if c.Params("id") == "" {
 			c.Status(fiber.StatusBadRequest)
@@ -754,7 +754,7 @@ func JoinRoom(chatServer *ChatServer) func(*fiber.Ctx) error {
 	}
 }
 
-func LeaveRoom(chatServer *ChatServer) func(*fiber.Ctx) error {
+func HandleLeaveRoom(chatServer *ChatServer) func(*fiber.Ctx) error {
 	return func(c *fiber.Ctx) error {
 		if c.Params("id") == "" {
 			c.Status(fiber.StatusBadRequest)

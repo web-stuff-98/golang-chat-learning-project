@@ -41,7 +41,7 @@ func closeWsConn(c *fiber.Ctx, closeWsChan chan string, cookie string) error {
 	return nil
 }
 
-func Register(c *fiber.Ctx) error {
+func HandleRegister(c *fiber.Ctx) error {
 	var body validator.Credentials
 	if err := c.BodyParser(&body); err != nil {
 		c.Status(fiber.StatusBadRequest)
@@ -100,7 +100,7 @@ func Register(c *fiber.Ctx) error {
 	})
 }
 
-func Login(c *fiber.Ctx) error {
+func HandleLogin(c *fiber.Ctx) error {
 	var body validator.Credentials
 	if err := c.BodyParser(&body); err != nil {
 		c.Status(fiber.StatusBadRequest)
@@ -152,7 +152,7 @@ func Login(c *fiber.Ctx) error {
 	return c.JSON(user)
 }
 
-func Logout(closeWsChan chan string) fiber.Handler {
+func HandleLogout(closeWsChan chan string) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		if c.Cookies("session_token", "") == "" {
 			c.Status(fiber.StatusUnauthorized)
@@ -174,7 +174,7 @@ func Logout(closeWsChan chan string) fiber.Handler {
 	}
 }
 
-func DeleteUser(c *fiber.Ctx) error {
+func HandleDeleteUser(c *fiber.Ctx) error {
 	if c.Cookies("session_token", "") == "" {
 		c.Status(fiber.StatusUnauthorized)
 		return c.JSON(fiber.Map{
@@ -234,7 +234,7 @@ func Welcome(c *fiber.Ctx) error {
 	})
 }
 
-func Refresh(closeWsChan chan string) fiber.Handler {
+func HandleRefresh(closeWsChan chan string) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		if c.Cookies("session_token", "") == "" {
 			c.Status(fiber.StatusUnauthorized)
@@ -327,7 +327,7 @@ func Refresh(closeWsChan chan string) fiber.Handler {
 
 const maxPfpSize = 20 * 1024 * 1024 //20mb
 
-func UpdatePfp(chatServer *ChatServer) func(*fiber.Ctx) error {
+func HandleUpdatePfp(chatServer *ChatServer) func(*fiber.Ctx) error {
 	return func(c *fiber.Ctx) error {
 		file, err := c.FormFile("file")
 		if err != nil {
@@ -423,7 +423,7 @@ func UpdatePfp(chatServer *ChatServer) func(*fiber.Ctx) error {
 	}
 }
 
-func GetUser(c *fiber.Ctx) error {
+func HandleGetUser(c *fiber.Ctx) error {
 	uid, err := primitive.ObjectIDFromHex(c.Params("id"))
 	if err != nil {
 		c.Status(fiber.StatusBadRequest)
