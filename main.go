@@ -30,17 +30,17 @@ func main() {
 	db.Connect()
 
 	/* -------- Create map to store client IP addresses and associated data used by rate limiter -------- */
-	var ipBlockInfoMap map[string]mylimiter.IpInfo
+	ipBlockInfoMap := make(map[string]mylimiter.IpInfo)
 
 	/* -------- Generate seed and store ids of example rooms and users in memory -------- */
 	var uids, rids map[primitive.ObjectID]struct{}
 	var seedErr error
 	if dotEnvErr != nil {
 		log.Println("No .env file detected. Continuing as in production mode...")
-		uids, rids, seedErr = seed.GenerateSeed(30, 255)
+		uids, rids, seedErr = seed.GenerateSeed(50, 255)
 	} else {
 		log.Println("Loaded .env file. Continuing as in development mode...")
-		uids, rids, seedErr = seed.GenerateSeed(5, 10)
+		//uids, rids, seedErr = seed.GenerateSeed(50, 255)
 	}
 	if seedErr != nil {
 		log.Fatal("Seed error : ", seedErr)

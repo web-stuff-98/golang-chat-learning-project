@@ -11,7 +11,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func Setup(app *fiber.App, chatServer *controllers.ChatServer, closeWsChan chan string, protectedUids map[primitive.ObjectID]struct{}, protectedRids map[primitive.ObjectID]struct{}, ipBlockInfoMap map[string]mylimiter.IpInfo) {
+func Setup(app *fiber.App, chatServer *controllers.ChatServer, closeWsChan chan string, protectedUids map[primitive.ObjectID]struct{}, protectedRids map[primitive.ObjectID]struct{}, ipBlockInfoMap map[string]map[string]mylimiter.BlockInfo) {
 	app.Post("/api/welcome", controllers.Welcome)
 	app.Post("/api/user/login", controllers.HandleLogin)
 	app.Post("/api/user/register", controllers.HandleRegister)
@@ -19,18 +19,21 @@ func Setup(app *fiber.App, chatServer *controllers.ChatServer, closeWsChan chan 
 		Window:        time.Second * 10,
 		MaxReqs:       10,
 		BlockDuration: time.Second * 30,
+		RouteName:     "updatepfp",
 	}), helpers.AuthMiddleware, controllers.HandleUpdatePfp(chatServer, protectedUids))
 	app.Post("/api/user/deleteacc", helpers.AuthMiddleware, controllers.HandleDeleteUser(protectedUids))
 	app.Post("/api/user/refresh", mylimiter.SimpleLimiterMiddleware(ipBlockInfoMap, mylimiter.SimpleLimiterOpts{
 		Window:        time.Second * 120,
 		MaxReqs:       4,
 		BlockDuration: time.Minute * 2,
+		RouteName:     "refresh",
 	}), controllers.HandleRefresh(closeWsChan))
 	app.Post("/api/user/logout", controllers.HandleLogout(closeWsChan))
 	app.Get("/api/user/:id", mylimiter.SimpleLimiterMiddleware(ipBlockInfoMap, mylimiter.SimpleLimiterOpts{
 		Window:        time.Second * 10,
 		MaxReqs:       30,
 		BlockDuration: time.Second * 4,
+		RouteName:     "getuser",
 	}), helpers.AuthMiddleware, controllers.HandleGetUser)
 
 	app.Use("/ws", controllers.HandleWsUpgrade)
@@ -40,40 +43,49 @@ func Setup(app *fiber.App, chatServer *controllers.ChatServer, closeWsChan chan 
 		Window:        time.Second * 10,
 		MaxReqs:       10,
 		BlockDuration: time.Second * 30,
+		RouteName:     "getroom",
 	}), helpers.AuthMiddleware, controllers.HandleGetRoom)
 	app.Get("/api/rooms", mylimiter.SimpleLimiterMiddleware(ipBlockInfoMap, mylimiter.SimpleLimiterOpts{
 		Window:        time.Second * 3,
 		MaxReqs:       5,
 		BlockDuration: time.Second * 100,
+		RouteName:     "getrooms",
 	}), helpers.AuthMiddleware, controllers.HandleGetRooms)
 	app.Patch("/api/room/:id", mylimiter.SimpleLimiterMiddleware(ipBlockInfoMap, mylimiter.SimpleLimiterOpts{
 		Window:        time.Second * 10,
 		MaxReqs:       4,
 		BlockDuration: time.Second * 30,
+		RouteName:     "updateroom",
 	}), helpers.AuthMiddleware, controllers.HandleUpdateRoom(protectedRids))
 	app.Delete("/api/room/:id", mylimiter.SimpleLimiterMiddleware(ipBlockInfoMap, mylimiter.SimpleLimiterOpts{
 		Window:        time.Second * 3,
 		MaxReqs:       4,
 		BlockDuration: time.Second * 30,
+		RouteName:     "deleteroom",
 	}), helpers.AuthMiddleware, controllers.HandleDeleteRoom(chatServer, protectedRids))
 	app.Post("/api/room/:id/image", mylimiter.SimpleLimiterMiddleware(ipBlockInfoMap, mylimiter.SimpleLimiterOpts{
 		Window:        time.Second * 10,
 		MaxReqs:       5,
 		BlockDuration: time.Minute,
+		RouteName:     "roomimage",
 	}), helpers.AuthMiddleware, controllers.HandleUploadRoomImage(chatServer))
 	app.Post("/api/room/:id/join", mylimiter.SimpleLimiterMiddleware(ipBlockInfoMap, mylimiter.SimpleLimiterOpts{
 		Window:        time.Second * 10,
 		MaxReqs:       10,
 		BlockDuration: time.Second * 10,
+		RouteName:     "joinroom",
 	}), helpers.AuthMiddleware, controllers.HandleJoinRoom(chatServer))
 	app.Post("/api/room/:id/leave", mylimiter.SimpleLimiterMiddleware(ipBlockInfoMap, mylimiter.SimpleLimiterOpts{
 		Window:        time.Second * 10,
 		MaxReqs:       10,
-		BlockDuration: time.Second * 10}), helpers.AuthMiddleware, controllers.HandleLeaveRoom(chatServer))
+		BlockDuration: time.Second * 10,
+		RouteName:     "leaveroom",
+	}), helpers.AuthMiddleware, controllers.HandleLeaveRoom(chatServer))
 	app.Post("/api/room", mylimiter.SimpleLimiterMiddleware(ipBlockInfoMap, mylimiter.SimpleLimiterOpts{
 		Window:        time.Minute,
 		MaxReqs:       5,
 		BlockDuration: time.Minute,
 		Message:       "You have been creating too many rooms. Wait one minute.",
+		RouteName:     "createroom",
 	}), helpers.AuthMiddleware, controllers.HandleCreateRoom)
 }

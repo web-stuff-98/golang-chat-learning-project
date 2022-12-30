@@ -7,6 +7,10 @@
   padding: var(--padding);
   width: calc(100% - var(--padding) * 2);
 
+  .roomName {
+    
+  }
+
   .messages {
     display: flex;
     flex-direction: column;

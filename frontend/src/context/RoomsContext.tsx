@@ -46,9 +46,10 @@ export const RoomsProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
-  const getRoomData = useCallback((id: string) => {
-    return rooms.find((r) => r.ID === id);
-  }, []);
+  const getRoomData = useCallback(
+    (id: string) => rooms.find((r) => r.ID === id),
+    [rooms]
+  );
 
   const deleteRoomsByAuthor = (uid: string) =>
     setRooms((o) => [...o.filter((r) => r.author_id !== uid)]);

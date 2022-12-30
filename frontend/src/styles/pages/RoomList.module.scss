@@ -11,6 +11,8 @@
     display: flex;
     flex-direction: column;
     gap: var(--padding);
+    max-height: 20rem;
+    overflow-y: auto;
 
     .room {
       background-position: center;

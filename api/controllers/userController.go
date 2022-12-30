@@ -168,7 +168,7 @@ func HandleLogout(closeWsChan chan string) fiber.Handler {
 				"message": "Internal error",
 			})
 		}
-		c.ClearCookie("session_token")
+		c.ClearCookie()
 		c.Status(fiber.StatusOK)
 		return c.JSON(fiber.Map{"message": "Logged out"})
 	}

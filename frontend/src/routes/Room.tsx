@@ -8,7 +8,7 @@ import ResMsg, { IResMsg } from "../components/ResMsg";
 import { useAuth } from "../context/AuthContext";
 import { useUsers } from "../context/UsersContext";
 import Message from "../components/Message";
-import { useRooms } from "../context/RoomsContext";
+import { IRoom, useRooms } from "../context/RoomsContext";
 import ProtectedRoute from "./ProtectedRoute";
 
 export interface IMsg {
@@ -98,9 +98,14 @@ export default function Room() {
     };
   }, [socket]);
 
+  const renderRoomName = (room?: IRoom) => (room ? room.name : "");
+
   return (
     <ProtectedRoute user={user}>
       <div className={classes.container}>
+        <div className={classes.roomName}>
+          {renderRoomName(getRoomData(id as string))}
+        </div>
         <div className={classes.messages}>
           {messages && messages.length && !resMsg.pen ? (
             messages.map((msg) => (
