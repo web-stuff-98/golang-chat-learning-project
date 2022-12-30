@@ -7,7 +7,6 @@ import (
 	"image"
 	"image/jpeg"
 	"image/png"
-	"log"
 	"strings"
 	"time"
 
@@ -186,9 +185,6 @@ func HandleLogout(closeWsChan chan string) fiber.Handler {
 func HandleDeleteUser(protectedUids *map[primitive.ObjectID]struct{}) func(*fiber.Ctx) error {
 	return func(c *fiber.Ctx) error {
 		var uids = *protectedUids
-
-		log.Println("Protected UIDS length : ", len(uids))
-		log.Println("Protected UIDS length : ", len(*protectedUids))
 
 		_, ok := uids[c.Locals("uid").(primitive.ObjectID)]
 		if ok {
