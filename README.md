@@ -1,1 +1,0 @@
-This is my first golang project which I am making so that I can learn. It uses mongodb, go, go-fiber and go-fiber websocket (v2).
