@@ -22,7 +22,7 @@ export default function Room() {
   const { id } = useParams();
   const { user } = useAuth();
   const { getRoomData } = useRooms();
-  const { cacheUserData } = useUsers();
+  const { cacheUserData, updateUserData } = useUsers();
   const navigate = useNavigate();
 
   const msgsBottomRef = useRef<HTMLSpanElement>(null);
@@ -74,8 +74,7 @@ export default function Room() {
       console.log(JSON.stringify(data));
       if (!data.event_type) {
         //if no event_type, then its a normal room message, so don't ignore it
-        delete data.event_type;
-        cacheUserData(e.data.uid);
+        cacheUserData(data.uid);
         setMessages((old) => [
           ...old,
           { ...data, timestamp: new Date().toISOString() },
@@ -94,6 +93,9 @@ export default function Room() {
           if (data.ID === id) {
             navigate("/room/list");
           }
+        }
+        if (data.event_type === "pfp_update") {
+          updateUserData(data)
         }
       }
     };

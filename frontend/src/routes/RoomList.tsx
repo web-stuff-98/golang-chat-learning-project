@@ -3,19 +3,14 @@ import classes from "../styles/pages/RoomList.module.scss";
 import { useEffect, useState } from "react";
 import { getRooms } from "../services/rooms";
 import ResMsg, { IResMsg } from "../components/ResMsg";
-import { IoEnter } from "react-icons/io5";
-import { AiFillEdit, AiFillDelete } from "react-icons/ai";
-import IconBtn from "../components/IconBtn";
 import { IRoom, useRooms } from "../context/RoomsContext";
 import { useAuth } from "../context/AuthContext";
 import ProtectedRoute from "./ProtectedRoute";
-import { useModal } from "../context/ModalContext";
 import Room from "../components/Room";
 
 export default function RoomList() {
   const navigate = useNavigate();
-  const { openModal, closeModal } = useModal();
-  const { setAllRooms, rooms, setOwnRooms, deleteRoom } = useRooms();
+  const { setAllRooms, rooms, setOwnRooms } = useRooms();
   const { user } = useAuth();
 
   const [searchParams] = useSearchParams();
@@ -55,10 +50,7 @@ export default function RoomList() {
       <div className={classes.container}>
         <div className={classes.rooms}>
           <ResMsg resMsg={resMsg} />
-          {!resMsg.pen &&
-            rooms.map((room: IRoom) => (
-              <Room room={room}/>
-            ))}
+          {!resMsg.pen && rooms.map((room: IRoom) => <Room room={room} />)}
         </div>
         <button
           className={classes.back}

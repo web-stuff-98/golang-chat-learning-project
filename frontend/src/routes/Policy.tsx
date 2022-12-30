@@ -3,8 +3,8 @@ import classes from "../styles/pages/Home.module.scss";
 export default function Policy() {
   return (
     <div className={classes.container}>
-      <h1>Privacy & Cookies policy</h1>
-      <hr />
+      <h1 style={{ marginBottom: "0" }}>Privacy & Cookies policy</h1>
+      <hr style={{ marginTop: "0" }} />
       <p style={{ padding: "0" }}>
         This website uses cookies to facilitate user logins. Accounts and all
         associated data are deleted automatically after 20 minutes. Your IP

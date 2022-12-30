@@ -14,7 +14,7 @@ export interface IPosition {
 }
 
 const initialState: State = {
-  darkMode: true,
+  darkMode: false,
   dimensions: { width: 0, height: 0 },
   containerMode: "Full",
 };
@@ -70,8 +70,16 @@ export const InterfaceProvider = ({ children }: { children: ReactNode }) => {
     };
     handleResize();
     window.addEventListener("resize", handleResize);
+    const handleDetectDarkmode = (event: MediaQueryListEvent) =>
+      dispatch({ darkMode: event?.matches ? true : false });
+    window
+      .matchMedia("(prefers-color-scheme: dark)")
+      .addEventListener("change", handleDetectDarkmode);
     return () => {
       window.removeEventListener("resize", handleResize);
+      window
+        .matchMedia("(prefers-color-scheme: dark)")
+        .removeEventListener("change", handleDetectDarkmode);
     };
   }, []);
 

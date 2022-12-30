@@ -1,7 +1,5 @@
 import { useInterface } from "../../context/InterfaceContext";
 
-import { makeRequest } from "../../services/makeRequest";
-
 import classes from "./Layout.module.scss";
 
 export default function Header() {

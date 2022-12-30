@@ -388,6 +388,11 @@ func HandleGetRoomImage(c *fiber.Ctx) error {
 			return c.JSON(fiber.Map{
 				"message": "Internal error",
 			})
+		} else {
+			c.Status(fiber.StatusNotFound)
+			return c.JSON(fiber.Map{
+				"message": "Room has no image",
+			})
 		}
 	}
 	found.Decode(&img)

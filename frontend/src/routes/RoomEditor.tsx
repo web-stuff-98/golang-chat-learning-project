@@ -36,6 +36,7 @@ export default function RoomEditor() {
     getRoomImage(id)
       .then((url) => setCoverImageURL(url))
       .catch((e) => {
+        setCoverImageURL("")
         console.error(e);
       });
   }, [id]);
@@ -70,14 +71,7 @@ export default function RoomEditor() {
     if (!e.target.files[0]) return;
     const file = e.target.files[0];
     try {
-      const b64 = await new Promise<string>((resolve, reject) => {
-        const fr = new FileReader();
-        fr.readAsDataURL(file);
-        fr.onloadend = () => resolve(fr.result as string);
-        fr.onabort = () => reject();
-        fr.onerror = () => reject();
-      });
-      setCoverImageURL(b64);
+      setCoverImageURL(URL.createObjectURL(file));
       coverImageFileRef.current = file;
     } catch (e) {
       setResMsg({ msg: "Image error", err: true, pen: false });

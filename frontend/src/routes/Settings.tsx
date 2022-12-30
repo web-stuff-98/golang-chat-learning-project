@@ -13,7 +13,6 @@ export default function Settings() {
   const { user, deleteAccount, updateUserState } = useAuth();
   const { openModal, closeModal } = useModal();
 
-  const [file, setFile] = useState<File>();
   const fileRef = useRef<File>();
 
   const [resMsg, setResMsg] = useState<IResMsg>({
@@ -26,7 +25,6 @@ export default function Settings() {
     if (!e.target.files) return;
     const file = e.target.files![0];
     if (!file) return;
-    setFile(file);
     fileRef.current = file;
     updatePfp(file.name);
   };

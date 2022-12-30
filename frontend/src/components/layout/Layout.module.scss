@@ -1,6 +1,6 @@
 .container {
   display: flex;
-  height: calc(100vh - var(--nav-height));
+  height: calc(100vh - var(--header-height));
   padding-top:var(--header-height);
   position: relative;
 
