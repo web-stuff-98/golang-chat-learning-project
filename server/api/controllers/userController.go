@@ -41,115 +41,123 @@ func closeWsConn(c *fiber.Ctx, closeWsChan chan string, cookie string) error {
 	return nil
 }
 
-func HandleRegister(c *fiber.Ctx) error {
-	var body validator.Credentials
-	if err := c.BodyParser(&body); err != nil {
-		c.Status(fiber.StatusBadRequest)
+func HandleRegister(production bool) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		var body validator.Credentials
+		if err := c.BodyParser(&body); err != nil {
+			c.Status(fiber.StatusBadRequest)
+			return c.JSON(fiber.Map{
+				"message": "Invalid request",
+			})
+		}
+		count, err := db.UserCollection.CountDocuments(c.Context(), bson.M{"username": bson.M{"$regex": body.Username, "$options": "i"}})
+
+		if err != nil {
+			c.Status(fiber.StatusInternalServerError)
+			return c.JSON(fiber.Map{
+				"message": "Internal error",
+			})
+		}
+		if count != 0 {
+			c.Status(400)
+			return c.JSON(fiber.Map{
+				"message": "There is a user by that name already",
+			})
+		}
+
+		bytes, err := bcrypt.GenerateFromPassword([]byte(body.Password), 14)
+		if err != nil {
+			c.Status(fiber.StatusInternalServerError)
+			return c.JSON(fiber.Map{
+				"message": "Internal error",
+			})
+		}
+
+		inserted, err := db.UserCollection.InsertOne(c.Context(), models.User{
+			Username: body.Username,
+			Password: string(bytes),
+		})
+
+		if err != nil {
+			c.Status(fiber.StatusBadRequest)
+			return c.JSON(fiber.Map{
+				"message": "Could not create account. Needs better error handling here",
+			})
+		}
+
+		expiresAt := time.Now().Add(120 * time.Second)
+		token, err := helpers.GenerateToken(c, inserted.InsertedID.(primitive.ObjectID), expiresAt, false)
+
+		c.Cookie(&fiber.Cookie{
+			Name:     "session_token",
+			Value:    token,
+			Expires:  expiresAt,
+			SameSite: "strict",
+			Secure:   production,
+		})
+
+		c.Status(fiber.StatusOK)
 		return c.JSON(fiber.Map{
-			"message": "Invalid request",
+			"username": &body.Username,
+			"ID":       inserted.InsertedID.(primitive.ObjectID).Hex(),
 		})
 	}
-	count, err := db.UserCollection.CountDocuments(c.Context(), bson.M{"username": bson.M{"$regex": body.Username, "$options": "i"}})
-
-	if err != nil {
-		c.Status(fiber.StatusInternalServerError)
-		return c.JSON(fiber.Map{
-			"message": "Internal error",
-		})
-	}
-	if count != 0 {
-		c.Status(400)
-		return c.JSON(fiber.Map{
-			"message": "There is a user by that name already",
-		})
-	}
-
-	bytes, err := bcrypt.GenerateFromPassword([]byte(body.Password), 14)
-	if err != nil {
-		c.Status(fiber.StatusInternalServerError)
-		return c.JSON(fiber.Map{
-			"message": "Internal error",
-		})
-	}
-
-	inserted, err := db.UserCollection.InsertOne(c.Context(), models.User{
-		Username: body.Username,
-		Password: string(bytes),
-	})
-
-	if err != nil {
-		c.Status(fiber.StatusBadRequest)
-		return c.JSON(fiber.Map{
-			"message": "Could not create account. Needs better error handling here",
-		})
-	}
-
-	expiresAt := time.Now().Add(120 * time.Second)
-	token, err := helpers.GenerateToken(c, inserted.InsertedID.(primitive.ObjectID), expiresAt, false)
-
-	c.Cookie(&fiber.Cookie{
-		Name:    "session_token",
-		Value:   token,
-		Expires: expiresAt,
-	})
-
-	c.Status(fiber.StatusOK)
-	return c.JSON(fiber.Map{
-		"username": &body.Username,
-		"ID":       inserted.InsertedID.(primitive.ObjectID).Hex(),
-	})
 }
 
-func HandleLogin(c *fiber.Ctx) error {
-	var body validator.Credentials
-	if err := c.BodyParser(&body); err != nil {
-		c.Status(fiber.StatusBadRequest)
-		return c.JSON(fiber.Map{
-			"message": "Invalid request",
-		})
-	}
+func HandleLogin(production bool) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		var body validator.Credentials
+		if err := c.BodyParser(&body); err != nil {
+			c.Status(fiber.StatusBadRequest)
+			return c.JSON(fiber.Map{
+				"message": "Invalid request",
+			})
+		}
 
-	var user models.User
-	err := db.UserCollection.FindOne(c.Context(), bson.M{"username": bson.M{"$regex": body.Username, "$options": "i"}}).Decode(&user)
+		var user models.User
+		err := db.UserCollection.FindOne(c.Context(), bson.M{"username": bson.M{"$regex": body.Username, "$options": "i"}}).Decode(&user)
 
-	if err != nil {
-		if err == mongo.ErrNoDocuments {
+		if err != nil {
+			if err == mongo.ErrNoDocuments {
+				c.Status(fiber.StatusBadRequest)
+				return c.JSON(fiber.Map{
+					"message": "Incorrect credentials",
+				})
+			}
+			c.Status(fiber.StatusInternalServerError)
+			return c.JSON(fiber.Map{
+				"message": "Internal error",
+			})
+		}
+
+		var pfp models.Pfp
+		pfperr := db.PfpCollection.FindOne(c.Context(), bson.M{"_id": user.ID}).Decode(&pfp)
+
+		if pfperr == nil {
+			user.Base64pfp = "data:image/jpeg;base64," + base64.StdEncoding.EncodeToString(pfp.Binary.Data)
+		}
+
+		hashErr := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(body.Password))
+		if hashErr != nil {
 			c.Status(fiber.StatusBadRequest)
 			return c.JSON(fiber.Map{
 				"message": "Incorrect credentials",
 			})
 		}
-		c.Status(fiber.StatusInternalServerError)
-		return c.JSON(fiber.Map{
-			"message": "Internal error",
+
+		expiresAt := time.Now().Add(120 * time.Second)
+		token, err := helpers.GenerateToken(c, user.ID, expiresAt, false)
+
+		c.Cookie(&fiber.Cookie{
+			Name:     "session_token",
+			Value:    token,
+			Expires:  expiresAt,
+			SameSite: "strict",
+			Secure:   production,
 		})
+
+		return c.JSON(user)
 	}
-
-	var pfp models.Pfp
-	pfperr := db.PfpCollection.FindOne(c.Context(), bson.M{"_id": user.ID}).Decode(&pfp)
-
-	if pfperr == nil {
-		user.Base64pfp = "data:image/jpeg;base64," + base64.StdEncoding.EncodeToString(pfp.Binary.Data)
-	}
-
-	hashErr := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(body.Password))
-	if hashErr != nil {
-		c.Status(fiber.StatusBadRequest)
-		return c.JSON(fiber.Map{
-			"message": "Incorrect credentials",
-		})
-	}
-
-	expiresAt := time.Now().Add(120 * time.Second)
-	token, err := helpers.GenerateToken(c, user.ID, expiresAt, false)
-
-	c.Cookie(&fiber.Cookie{
-		Name:    "session_token",
-		Value:   token,
-		Expires: expiresAt,
-	})
-
-	return c.JSON(user)
 }
 
 func HandleLogout(closeWsChan chan string) fiber.Handler {
@@ -168,7 +176,7 @@ func HandleLogout(closeWsChan chan string) fiber.Handler {
 				"message": "Internal error",
 			})
 		}
-		c.ClearCookie()
+		c.ClearCookie("session_token")
 		c.Status(fiber.StatusOK)
 		return c.JSON(fiber.Map{"message": "Logged out"})
 	}
@@ -244,7 +252,7 @@ func Welcome(c *fiber.Ctx) error {
 	})
 }
 
-func HandleRefresh(closeWsChan chan string) fiber.Handler {
+func HandleRefresh(closeWsChan chan string, production bool) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		if c.Cookies("session_token", "") == "" {
 			c.Status(fiber.StatusUnauthorized)
@@ -324,9 +332,11 @@ func HandleRefresh(closeWsChan chan string) fiber.Handler {
 		}
 
 		c.Cookie(&fiber.Cookie{
-			Name:    "session_token",
-			Value:   token,
-			Expires: expiresAt,
+			Name:     "session_token",
+			Value:    token,
+			Expires:  expiresAt,
+			SameSite: "strict",
+			Secure:   production,
 		})
 
 		return c.JSON(fiber.Map{

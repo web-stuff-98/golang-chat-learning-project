@@ -1,14 +1,14 @@
 {
   "files": {
     "main.css": "/static/css/main.36e7da14.css",
-    "main.js": "/static/js/main.9a5f9e96.js",
+    "main.js": "/static/js/main.17e5be9e.js",
     "static/media/Simvoni-gxm5Y.ttf": "/static/media/Simvoni-gxm5Y.a5cb1688f65d152ad145.ttf",
     "index.html": "/index.html",
     "main.36e7da14.css.map": "/static/css/main.36e7da14.css.map",
-    "main.9a5f9e96.js.map": "/static/js/main.9a5f9e96.js.map"
+    "main.17e5be9e.js.map": "/static/js/main.17e5be9e.js.map"
   },
   "entrypoints": [
     "static/css/main.36e7da14.css",
-    "static/js/main.9a5f9e96.js"
+    "static/js/main.17e5be9e.js"
   ]
 }

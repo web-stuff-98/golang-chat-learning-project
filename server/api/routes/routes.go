@@ -11,10 +11,10 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func Setup(app *fiber.App, chatServer *controllers.ChatServer, closeWsChan chan string, protectedUids map[primitive.ObjectID]struct{}, protectedRids map[primitive.ObjectID]struct{}, ipBlockInfoMap map[string]map[string]mylimiter.BlockInfo) {
+func Setup(app *fiber.App, chatServer *controllers.ChatServer, closeWsChan chan string, protectedUids map[primitive.ObjectID]struct{}, protectedRids map[primitive.ObjectID]struct{}, ipBlockInfoMap map[string]map[string]mylimiter.BlockInfo, production bool) {
 	app.Post("/api/welcome", controllers.Welcome)
-	app.Post("/api/user/login", controllers.HandleLogin)
-	app.Post("/api/user/register", controllers.HandleRegister)
+	app.Post("/api/user/login", controllers.HandleLogin(production))
+	app.Post("/api/user/register", controllers.HandleRegister(production))
 
 	app.Post("/api/testratelimit", mylimiter.SimpleLimiterMiddleware(ipBlockInfoMap, mylimiter.SimpleLimiterOpts{
 		Window:        time.Second * 5,
@@ -35,7 +35,7 @@ func Setup(app *fiber.App, chatServer *controllers.ChatServer, closeWsChan chan 
 		MaxReqs:       5,
 		BlockDuration: time.Minute * 2,
 		RouteName:     "refresh",
-	}), controllers.HandleRefresh(closeWsChan))
+	}), controllers.HandleRefresh(closeWsChan, production))
 	app.Post("/api/user/logout", controllers.HandleLogout(closeWsChan))
 	app.Get("/api/user/:id", mylimiter.SimpleLimiterMiddleware(ipBlockInfoMap, mylimiter.SimpleLimiterOpts{
 		Window:        time.Second * 10,

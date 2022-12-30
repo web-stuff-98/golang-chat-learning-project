@@ -27,17 +27,21 @@ func main() {
 
 	app := fiber.New()
 
+	app.Static("/", "./build")
+
 	db.Connect()
 
 	/* -------- Create map to store client IP addresses and associated data used by rate limiter -------- */
 	ipBlockInfoMap := make(map[string]map[string]mylimiter.BlockInfo)
 
-	/* -------- Generate seed and store ids of example rooms and users in memory -------- */
+	/* -------- Check if .env file exists to determine if in production mode, generate seed and store ids in memory -------- */
+	var production bool = false
 	var uids, rids map[primitive.ObjectID]struct{}
 	var seedErr error
 	if dotEnvErr != nil {
 		log.Println("No .env file detected. Continuing as in production mode...")
 		uids, rids, seedErr = seed.GenerateSeed(50, 255)
+		production = true
 	} else {
 		log.Println("Loaded .env file. Continuing as in development mode...")
 		uids, rids, seedErr = seed.GenerateSeed(5, 20)
@@ -108,7 +112,7 @@ func main() {
 
 	go watchForDeletesInUserCollection(db.UserCollection, deleteUserChan)
 
-	routes.Setup(app, chatServer, closeWsChan, uids, rids, ipBlockInfoMap)
+	routes.Setup(app, chatServer, closeWsChan, uids, rids, ipBlockInfoMap, production)
 	log.Fatal(app.Listen(":8080"))
 }
 
