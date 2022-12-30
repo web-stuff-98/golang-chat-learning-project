@@ -464,8 +464,10 @@ func HandleCreateRoom(chatServer *ChatServer) fiber.Handler {
 }
 
 // Updates the room name only
-func HandleUpdateRoom(protectedRids map[primitive.ObjectID]struct{}, chatServer *ChatServer) func(*fiber.Ctx) error {
+func HandleUpdateRoom(protectedRids *map[primitive.ObjectID]struct{}, chatServer *ChatServer) func(*fiber.Ctx) error {
 	return func(c *fiber.Ctx) error {
+		var rids = *protectedRids
+
 		if c.Params("id") == "" {
 			c.Status(fiber.StatusBadRequest)
 			return c.JSON(fiber.Map{
@@ -490,7 +492,7 @@ func HandleUpdateRoom(protectedRids map[primitive.ObjectID]struct{}, chatServer 
 			})
 		}
 
-		_, ok := protectedRids[oid]
+		_, ok := rids[oid]
 		if ok {
 			c.Status(fiber.StatusUnauthorized)
 			return c.JSON(fiber.Map{
@@ -708,8 +710,10 @@ func HandleUploadRoomImage(chatServer *ChatServer) func(*fiber.Ctx) error {
 	}
 }
 
-func HandleDeleteRoom(chatServer *ChatServer, protectedRids map[primitive.ObjectID]struct{}) func(*fiber.Ctx) error {
+func HandleDeleteRoom(chatServer *ChatServer, protectedRids *map[primitive.ObjectID]struct{}) func(*fiber.Ctx) error {
 	return func(c *fiber.Ctx) error {
+		var rids = *protectedRids
+
 		if c.Params("id") == "" {
 			c.Status(fiber.StatusBadRequest)
 			return c.JSON(fiber.Map{
@@ -725,7 +729,7 @@ func HandleDeleteRoom(chatServer *ChatServer, protectedRids map[primitive.Object
 			})
 		}
 
-		_, ok := protectedRids[oid]
+		_, ok := rids[oid]
 		if ok {
 			c.Status(fiber.StatusUnauthorized)
 			return c.JSON(fiber.Map{

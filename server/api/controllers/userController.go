@@ -7,6 +7,7 @@ import (
 	"image"
 	"image/jpeg"
 	"image/png"
+	"log"
 	"strings"
 	"time"
 
@@ -182,9 +183,14 @@ func HandleLogout(closeWsChan chan string) fiber.Handler {
 	}
 }
 
-func HandleDeleteUser(protectedUids map[primitive.ObjectID]struct{}) func(*fiber.Ctx) error {
+func HandleDeleteUser(protectedUids *map[primitive.ObjectID]struct{}) func(*fiber.Ctx) error {
 	return func(c *fiber.Ctx) error {
-		_, ok := protectedUids[c.Locals("uid").(primitive.ObjectID)]
+		var uids = *protectedUids
+
+		log.Println("Protected UIDS length : ", len(uids))
+		log.Println("Protected UIDS length : ", len(*protectedUids))
+
+		_, ok := uids[c.Locals("uid").(primitive.ObjectID)]
 		if ok {
 			c.Status(fiber.StatusUnauthorized)
 			return c.JSON(fiber.Map{
@@ -347,9 +353,11 @@ func HandleRefresh(closeWsChan chan string, production bool) fiber.Handler {
 
 const maxPfpSize = 20 * 1024 * 1024 //20mb
 
-func HandleUpdatePfp(chatServer *ChatServer, protectedUids map[primitive.ObjectID]struct{}) func(*fiber.Ctx) error {
+func HandleUpdatePfp(chatServer *ChatServer, protectedUids *map[primitive.ObjectID]struct{}) func(*fiber.Ctx) error {
 	return func(c *fiber.Ctx) error {
-		_, ok := protectedUids[c.Locals("uid").(primitive.ObjectID)]
+		var ids = *protectedUids
+
+		_, ok := ids[c.Locals("uid").(primitive.ObjectID)]
 		if ok {
 			c.Status(fiber.StatusUnauthorized)
 			return c.JSON(fiber.Map{

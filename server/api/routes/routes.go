@@ -11,7 +11,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func Setup(app *fiber.App, chatServer *controllers.ChatServer, closeWsChan chan string, protectedUids map[primitive.ObjectID]struct{}, protectedRids map[primitive.ObjectID]struct{}, ipBlockInfoMap map[string]map[string]mylimiter.BlockInfo, production bool) {
+func Setup(app *fiber.App, chatServer *controllers.ChatServer, closeWsChan chan string, protectedUids *map[primitive.ObjectID]struct{}, protectedRids *map[primitive.ObjectID]struct{}, ipBlockInfoMap map[string]map[string]mylimiter.BlockInfo, production bool) {
 	app.Post("/api/welcome", controllers.Welcome)
 	app.Post("/api/user/login", controllers.HandleLogin(production))
 	app.Post("/api/user/register", controllers.HandleRegister(production))

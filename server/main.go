@@ -35,7 +35,9 @@ func main() {
 	/* -------- Create map to store client IP addresses and associated data used by rate limiter -------- */
 	ipBlockInfoMap := make(map[string]map[string]mylimiter.BlockInfo)
 
-	var uids, rids map[primitive.ObjectID]struct{}
+	uids := make(map[primitive.ObjectID]struct{})
+	rids := make(map[primitive.ObjectID]struct{})
+
 	var production bool = false
 	if dotEnvErr != nil {
 		log.Fatal("DOTENV ERROR : ", dotEnvErr)
@@ -53,21 +55,25 @@ func main() {
 		log.Fatal(fmt.Printf("Failed to setup chat server : %d", err))
 	}
 
-	log.Println("Will host on port ", os.Getenv("PORT"))
-
-	routes.Setup(app, chatServer, closeWsChan, uids, rids, ipBlockInfoMap, production)
-	log.Fatal(app.Listen(fmt.Sprint(":", os.Getenv("PORT"))))
-
-	/* -------- Check if .env file exists to determine if in production mode, generate seed and store ids in memory -------- */
+	/* -------- Generate seed and store ids in memory -------- */
 	var seedErr error
-	if !production {
-		uids, rids, seedErr = seed.GenerateSeed(5, 20)
-	} else {
-		uids, rids, seedErr = seed.GenerateSeed(50, 255)
-	}
-	if seedErr != nil {
-		log.Fatal("Seed error : ", seedErr)
-	}
+	go func() {
+		if !production {
+			uids, rids, seedErr = seed.GenerateSeed(5, 20)
+		} else {
+			// need to change this back to 50 accs and 255 rooms when everything is working as expected
+			uids, rids, seedErr = seed.GenerateSeed(1, 5)
+		}
+		if seedErr != nil {
+			log.Fatal("Seed error : ", seedErr)
+		}
+
+		log.Println(len(uids))
+		log.Println(len(rids))
+	}()
+
+	/* -------- Set up routes and send the complete maps of protected ids -------- */
+	routes.Setup(app, chatServer, closeWsChan, &uids, &rids, ipBlockInfoMap, production)
 
 	/* -------- Clean up expired sessions still in the database every 960 seconds -------- */
 	sessionCleanupTicker := time.NewTicker(960 * time.Second)
@@ -121,6 +127,8 @@ func main() {
 	}()
 
 	go watchForDeletesInUserCollection(db.UserCollection, deleteUserChan)
+
+	log.Fatal(app.Listen(fmt.Sprint(":", os.Getenv("PORT"))))
 }
 
 // Watch for deletions in users collection... need to delete their messages and rooms and send the delete ws event to other users
