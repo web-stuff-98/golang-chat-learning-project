@@ -8,6 +8,7 @@ import (
 
 	"github.com/joho/godotenv"
 	"github.com/web-stuff-98/golang-chat-learning-project/api/controllers"
+	"github.com/web-stuff-98/golang-chat-learning-project/api/mylimiter"
 	"github.com/web-stuff-98/golang-chat-learning-project/api/routes"
 	"github.com/web-stuff-98/golang-chat-learning-project/api/seed"
 	"github.com/web-stuff-98/golang-chat-learning-project/db"
@@ -28,11 +29,15 @@ func main() {
 
 	db.Connect()
 
+	/* -------- Create map to store client IP addresses and associated data used by rate limiter -------- */
+	var ipBlockInfoMap map[string]mylimiter.IpInfo
+
+	/* -------- Generate seed and store ids of example rooms and users in memory -------- */
 	var uids, rids map[primitive.ObjectID]struct{}
 	var seedErr error
 	if dotEnvErr != nil {
 		log.Println("No .env file detected. Continuing as in production mode...")
-		uids, rids, seedErr = seed.GenerateSeed(20, 100)
+		uids, rids, seedErr = seed.GenerateSeed(30, 255)
 	} else {
 		log.Println("Loaded .env file. Continuing as in development mode...")
 		uids, rids, seedErr = seed.GenerateSeed(5, 10)
@@ -64,7 +69,7 @@ func main() {
 			}
 		}
 	}()
-	/* -------- Delete accounts older than 20 minutes (changestream event will be triggered deleting the users rooms and messages also) -------- */
+	/* -------- Delete accounts older than 20 minutes (changestream delete event will trigger deleting the users rooms and messages also) -------- */
 	oldAccountCleanupTicker := time.NewTicker(120 * time.Second)
 	quitOldAccountCleanup := make(chan struct{})
 	go func() {
@@ -103,7 +108,7 @@ func main() {
 
 	go watchForDeletesInUserCollection(db.UserCollection, deleteUserChan)
 
-	routes.Setup(app, chatServer, closeWsChan, uids, rids)
+	routes.Setup(app, chatServer, closeWsChan, uids, rids, ipBlockInfoMap)
 	log.Fatal(app.Listen(":8080"))
 }
 
