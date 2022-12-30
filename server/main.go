@@ -61,8 +61,7 @@ func main() {
 		if !production {
 			uids, rids, seedErr = seed.GenerateSeed(5, 20)
 		} else {
-			// need to change this back to 50 accs and 255 rooms when everything is working as expected
-			uids, rids, seedErr = seed.GenerateSeed(1, 5)
+			uids, rids, seedErr = seed.GenerateSeed(50, 255)
 		}
 		if seedErr != nil {
 			log.Fatal("Seed error : ", seedErr)
