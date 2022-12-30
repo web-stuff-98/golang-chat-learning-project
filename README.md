@@ -12,3 +12,7 @@ Features :
 - Customizable profiles
 - Automatic account deletion
 - Automatic clean up via changestream
+
+
+I followed along with this medium article to deploy it
+https://medium.com/jaysonmulwa/deploying-a-go-fiber-go-react-app-to-heroku-using-docker-7379ed47e0fc

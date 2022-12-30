@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -34,22 +35,15 @@ func main() {
 	/* -------- Create map to store client IP addresses and associated data used by rate limiter -------- */
 	ipBlockInfoMap := make(map[string]map[string]mylimiter.BlockInfo)
 
-	/* -------- Check if .env file exists to determine if in production mode, generate seed and store ids in memory -------- */
-	var production bool = false
 	var uids, rids map[primitive.ObjectID]struct{}
-	var seedErr error
+	var production bool = false
 	if dotEnvErr != nil {
-		log.Println("No .env file detected. Continuing as in production mode...")
-		uids, rids, seedErr = seed.GenerateSeed(50, 255)
+		log.Fatal("DOTENV ERROR : ", dotEnvErr)
+	}
+	log.Println("Loaded environment variables...")
+	if os.Getenv("PRODUCTION") == "true" {
 		production = true
-	} else {
-		log.Println("Loaded .env file. Continuing as in development mode...")
-		uids, rids, seedErr = seed.GenerateSeed(5, 20)
 	}
-	if seedErr != nil {
-		log.Fatal("Seed error : ", seedErr)
-	}
-
 	app.Use(cors.New(cors.Config{
 		AllowCredentials: true,
 	}))
@@ -57,6 +51,22 @@ func main() {
 	chatServer, closeWsChan, deleteUserChan, err := controllers.NewServer()
 	if err != nil {
 		log.Fatal(fmt.Printf("Failed to setup chat server : %d", err))
+	}
+
+	log.Println("Will host on port ", os.Getenv("PORT"))
+
+	routes.Setup(app, chatServer, closeWsChan, uids, rids, ipBlockInfoMap, production)
+	log.Fatal(app.Listen(fmt.Sprint(":", os.Getenv("PORT"))))
+
+	/* -------- Check if .env file exists to determine if in production mode, generate seed and store ids in memory -------- */
+	var seedErr error
+	if !production {
+		uids, rids, seedErr = seed.GenerateSeed(5, 20)
+	} else {
+		uids, rids, seedErr = seed.GenerateSeed(50, 255)
+	}
+	if seedErr != nil {
+		log.Fatal("Seed error : ", seedErr)
 	}
 
 	/* -------- Clean up expired sessions still in the database every 960 seconds -------- */
@@ -111,9 +121,6 @@ func main() {
 	}()
 
 	go watchForDeletesInUserCollection(db.UserCollection, deleteUserChan)
-
-	routes.Setup(app, chatServer, closeWsChan, uids, rids, ipBlockInfoMap, production)
-	log.Fatal(app.Listen(":8080"))
 }
 
 // Watch for deletions in users collection... need to delete their messages and rooms and send the delete ws event to other users

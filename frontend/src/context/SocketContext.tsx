@@ -29,13 +29,11 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     if (!user) return;
-    //wss <- secure socket protocol. using this protocol sends the cookie. except I
-    //dont know how to configure go-fiber websocket to use this protocol... I have
-    //set up a different method for authenticating the socket connection...
+    //wss <- secure socket protocol.
     const socket = new WebSocket(
       process.env.NODE_ENV === "development"
         ? "ws://localhost:8080/ws/conn"
-        : "ws://golang-chat-learning-project.herokuapp.com/ws/conn"
+        : "wss://golang-chat-learning-project.herokuapp.com/ws/conn"
     );
     setSocket(socket);
     socket.onmessage = (e) => {
