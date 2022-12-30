@@ -15,6 +15,14 @@ func Setup(app *fiber.App, chatServer *controllers.ChatServer, closeWsChan chan 
 	app.Post("/api/welcome", controllers.Welcome)
 	app.Post("/api/user/login", controllers.HandleLogin)
 	app.Post("/api/user/register", controllers.HandleRegister)
+
+	app.Post("/api/testratelimit", mylimiter.SimpleLimiterMiddleware(ipBlockInfoMap, mylimiter.SimpleLimiterOpts{
+		Window:        time.Second * 5,
+		MaxReqs:       10,
+		BlockDuration: time.Second * 5,
+		RouteName:     "testratelimit",
+	}), controllers.HandleTestRateLimit)
+
 	app.Post("/api/user/updatepfp", mylimiter.SimpleLimiterMiddleware(ipBlockInfoMap, mylimiter.SimpleLimiterOpts{
 		Window:        time.Second * 10,
 		MaxReqs:       10,

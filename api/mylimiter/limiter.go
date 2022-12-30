@@ -56,15 +56,19 @@ func SimpleLimiterMiddleware(ipInfoMap map[string]map[string]BlockInfo, opts Sim
 				routeInfo.lastRequest = time.Now()
 				ipInfoMap[c.IP()][opts.RouteName] = routeInfo
 			} else {
-				ipInfoMap[c.IP()][opts.RouteName] = BlockInfo{
+				innerMap := make(map[string]BlockInfo)
+				innerMap[opts.RouteName] = BlockInfo{
 					lastRequest:      time.Now(),
 					requestsInWindow: 1,
 				}
+				ipInfoMap[c.IP()] = innerMap
 			}
 		} else {
-			ipInfoMap[c.IP()][opts.RouteName] = BlockInfo{
+			innerMap := make(map[string]BlockInfo)
+			innerMap[opts.RouteName] = BlockInfo{
 				lastRequest: time.Now(),
 			}
+			ipInfoMap[c.IP()] = innerMap
 		}
 		return c.Next()
 	}

@@ -30,7 +30,7 @@ func main() {
 	db.Connect()
 
 	/* -------- Create map to store client IP addresses and associated data used by rate limiter -------- */
-	ipBlockInfoMap := make(map[string]mylimiter.IpInfo)
+	ipBlockInfoMap := make(map[string]map[string]mylimiter.BlockInfo)
 
 	/* -------- Generate seed and store ids of example rooms and users in memory -------- */
 	var uids, rids map[primitive.ObjectID]struct{}

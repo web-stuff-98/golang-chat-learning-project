@@ -84,6 +84,13 @@ type ChatRoomConnectionRegistration struct {
 	uid string
 }
 
+func HandleTestRateLimit(c *fiber.Ctx) error {
+	c.Status(fiber.StatusOK)
+	return c.JSON(fiber.Map{
+		"message": "OK",
+	})
+}
+
 func NewServer() (*ChatServer, chan string, chan string, error) {
 	//closeWsChan can be used to close websockets using the users id
 	closeWsChan := make(chan string)

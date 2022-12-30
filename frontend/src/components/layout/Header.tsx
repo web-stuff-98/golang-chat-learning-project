@@ -1,5 +1,7 @@
 import { useInterface } from "../../context/InterfaceContext";
 
+import { makeRequest } from "../../services/makeRequest";
+
 import classes from "./Layout.module.scss";
 
 export default function Header() {
@@ -8,7 +10,10 @@ export default function Header() {
   return (
     <header>
       <div className={classes.logoImg}>
-        <img alt="Go gopher - by Renee French. reneefrench.blogspot.com" src="go-mascot-wiki-colour.png" />
+        <img
+          alt="Go gopher - by Renee French. reneefrench.blogspot.com"
+          src="go-mascot-wiki-colour.png"
+        />
         Go-Chat
       </div>
       <button
