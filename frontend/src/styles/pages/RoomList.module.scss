@@ -7,12 +7,41 @@
     margin-top: var(--padding);
   }
 
+  .paginationControls {
+    margin-top: var(--padding);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    button {
+      border: none;
+      outline: none;
+      padding: 0;
+      margin: 0;
+      height: fit-content;
+      background: none;
+      svg {
+        margin-top: 0.1rem;
+        font-size: var(--font-md);
+      }
+    }
+    .pageNumber {
+      font-size: var(--font-md);
+    }
+    .maxPage {
+      font-size: var(--font-md);
+    }
+  }
+
   .rooms {
     display: flex;
     flex-direction: column;
     gap: var(--padding);
+    height: 20rem;
     max-height: 20rem;
     overflow-y: auto;
+    border: 1px solid var(--base-medium);
+    padding: var(--padding-medium);
+    border-radius: var(--border-radius-medium);
 
     .room {
       background-position: center;

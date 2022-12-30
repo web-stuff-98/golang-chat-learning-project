@@ -46,7 +46,6 @@ export default function Room({ room }: { room: IRoom }) {
     return () => {
       observer.disconnect();
     };
-    //putting the ref in the dependency array was the only way to get this working properly for some reason
   }, []);
 
   return (

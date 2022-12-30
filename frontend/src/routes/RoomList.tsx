@@ -7,6 +7,7 @@ import { IRoom, useRooms } from "../context/RoomsContext";
 import { useAuth } from "../context/AuthContext";
 import ProtectedRoute from "./ProtectedRoute";
 import Room from "../components/Room";
+import { BsChevronLeft, BsChevronRight } from "react-icons/bs";
 
 export default function RoomList() {
   const navigate = useNavigate();
@@ -14,6 +15,8 @@ export default function RoomList() {
   const { user } = useAuth();
 
   const [searchParams] = useSearchParams();
+
+  const [pageIndex, setPageIndex] = useState(0);
 
   const [resMsg, setResMsg] = useState<IResMsg>({
     msg: "",
@@ -23,6 +26,7 @@ export default function RoomList() {
 
   const getRoomList = async () => {
     try {
+      setPageIndex(0);
       const data = await getRooms(searchParams.get("own") ? true : false);
       setResMsg({ msg: "Loading rooms...", err: false, pen: true });
       setAllRooms(data ?? []);
@@ -45,12 +49,33 @@ export default function RoomList() {
     getRoomList();
   }, [searchParams]);
 
+  const nextPage = () => {
+    setPageIndex((i) => Math.min(i + 1, Math.ceil(rooms.length / 20) - 1));
+  };
+
+  const prevPage = () => {
+    setPageIndex((i) => Math.max(i - 1, 0));
+  };
+
   return (
     <ProtectedRoute user={user}>
       <div className={classes.container}>
         <div className={classes.rooms}>
           <ResMsg resMsg={resMsg} />
-          {!resMsg.pen && rooms.map((room: IRoom) => <Room key={room.ID} room={room} />)}
+          {!resMsg.pen &&
+            rooms
+              .slice(pageIndex * 20, pageIndex * 20 + 20)
+              .map((room: IRoom) => <Room key={room.ID} room={room} />)}
+        </div>
+        <div className={classes.paginationControls}>
+          <button onClick={() => prevPage()} aria-label="Previous page">
+            <BsChevronLeft />
+          </button>
+          <div className={classes.pageNumber}>{pageIndex + 1}</div>/
+          <div className={classes.maxPage}>{Math.ceil(rooms.length / 20)}</div>
+          <button onClick={() => nextPage()} aria-label="Next page">
+            <BsChevronRight />
+          </button>
         </div>
         <button
           className={classes.back}

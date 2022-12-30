@@ -59,7 +59,7 @@ func main() {
 	var seedErr error
 	go func() {
 		if !production {
-			uids, rids, seedErr = seed.GenerateSeed(5, 20)
+			uids, rids, seedErr = seed.GenerateSeed(5, 70)
 		} else {
 			uids, rids, seedErr = seed.GenerateSeed(50, 255)
 		}
