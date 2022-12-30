@@ -3,6 +3,7 @@ package seed
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"fmt"
 	"image"
 	"image/jpeg"
@@ -56,7 +57,7 @@ func generateUser(i uint8) (uid primitive.ObjectID, err error) {
 	if decodeErr != nil {
 		return primitive.NilObjectID, decodeErr
 	}
-	img = resize.Resize(64, 0, img, resize.Lanczos2)
+	img = resize.Resize(36, 0, img, resize.Lanczos2)
 	buf := &bytes.Buffer{}
 	if err := jpeg.Encode(buf, img, nil); err != nil {
 		return primitive.NilObjectID, err
@@ -82,21 +83,28 @@ func generateUser(i uint8) (uid primitive.ObjectID, err error) {
 func generateRoom(i uint8, uid primitive.ObjectID) (rid primitive.ObjectID, err error) {
 	r := helpers.DownloadRandomImage(false)
 	var img image.Image
+	var imgBlur image.Image
 	var decodeErr error
 	defer r.Close()
 	img, decodeErr = jpeg.Decode(r)
 	if decodeErr != nil {
 		return primitive.NilObjectID, decodeErr
 	}
-	img = resize.Resize(200, 0, img, resize.Lanczos2)
+	img = resize.Resize(250, 0, img, resize.Lanczos2)
+	imgBlur = resize.Resize(4, 0, img, resize.Lanczos2)
 	buf := &bytes.Buffer{}
+	blurBuf := &bytes.Buffer{}
 	if err := jpeg.Encode(buf, img, nil); err != nil {
+		return primitive.NilObjectID, err
+	}
+	if err := jpeg.Encode(blurBuf, imgBlur, nil); err != nil {
 		return primitive.NilObjectID, err
 	}
 	inserted, err := db.RoomCollection.InsertOne(context.TODO(), models.Room{
 		Name:     fmt.Sprintf("Room %d", i+1),
 		Author:   uid,
 		Messages: []models.Message{},
+		ImgBlur:  "data:image/jpeg;base64," + base64.StdEncoding.EncodeToString(blurBuf.Bytes()),
 	})
 	if err != nil {
 		return primitive.NilObjectID, err

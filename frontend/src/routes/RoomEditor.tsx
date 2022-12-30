@@ -3,7 +3,12 @@ import formClasses from "../styles/FormClasses.module.scss";
 import { useNavigate, useParams } from "react-router-dom";
 import { useRef, useState, useEffect } from "react";
 import type { FormEvent, ChangeEvent } from "react";
-import { createRoom, updateRoom, uploadRoomImage } from "../services/rooms";
+import {
+  createRoom,
+  getRoomImage,
+  updateRoom,
+  uploadRoomImage,
+} from "../services/rooms";
 import ResMsg, { IResMsg } from "../components/ResMsg";
 import { useRooms } from "../context/RoomsContext";
 import ProtectedRoute from "./ProtectedRoute";
@@ -16,7 +21,7 @@ export default function RoomEditor() {
   const navigate = useNavigate();
 
   const [nameInput, setNameInput] = useState("");
-  const [coverImageB64, setCoverImageB64] = useState("");
+  const [coverImageURL, setCoverImageURL] = useState("");
   const coverImageFileRef = useRef<File>();
 
   const [resMsg, setResMsg] = useState<IResMsg>({
@@ -28,7 +33,11 @@ export default function RoomEditor() {
   useEffect(() => {
     if (!id) return;
     setNameInput(rooms.find((r) => r.ID === id)?.name!);
-    setCoverImageB64(rooms.find((r) => r.ID === id)?.base64image!);
+    getRoomImage(id)
+      .then((url) => setCoverImageURL(url))
+      .catch((e) => {
+        console.error(e);
+      });
   }, [id]);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
@@ -68,7 +77,7 @@ export default function RoomEditor() {
         fr.onabort = () => reject();
         fr.onerror = () => reject();
       });
-      setCoverImageB64(b64);
+      setCoverImageURL(b64);
       coverImageFileRef.current = file;
     } catch (e) {
       setResMsg({ msg: "Image error", err: true, pen: false });
@@ -104,9 +113,9 @@ export default function RoomEditor() {
         <button onClick={() => navigate("/room/menu")} type="button">
           Back
         </button>
-        {coverImageB64 && (
+        {coverImageURL && (
           <div
-            style={{ backgroundImage: `url(${coverImageB64})` }}
+            style={{ backgroundImage: `url(${coverImageURL})` }}
             className={classes.coverImage}
           />
         )}

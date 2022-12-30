@@ -32,7 +32,7 @@ func Setup(app *fiber.App, chatServer *controllers.ChatServer, closeWsChan chan 
 	app.Post("/api/user/deleteacc", helpers.AuthMiddleware, controllers.HandleDeleteUser(protectedUids))
 	app.Post("/api/user/refresh", mylimiter.SimpleLimiterMiddleware(ipBlockInfoMap, mylimiter.SimpleLimiterOpts{
 		Window:        time.Second * 120,
-		MaxReqs:       4,
+		MaxReqs:       5,
 		BlockDuration: time.Minute * 2,
 		RouteName:     "refresh",
 	}), controllers.HandleRefresh(closeWsChan))
@@ -64,7 +64,7 @@ func Setup(app *fiber.App, chatServer *controllers.ChatServer, closeWsChan chan 
 		MaxReqs:       4,
 		BlockDuration: time.Second * 30,
 		RouteName:     "updateroom",
-	}), helpers.AuthMiddleware, controllers.HandleUpdateRoom(protectedRids))
+	}), helpers.AuthMiddleware, controllers.HandleUpdateRoom(protectedRids, chatServer))
 	app.Delete("/api/room/:id", mylimiter.SimpleLimiterMiddleware(ipBlockInfoMap, mylimiter.SimpleLimiterOpts{
 		Window:        time.Second * 3,
 		MaxReqs:       4,
@@ -83,6 +83,12 @@ func Setup(app *fiber.App, chatServer *controllers.ChatServer, closeWsChan chan 
 		BlockDuration: time.Second * 10,
 		RouteName:     "joinroom",
 	}), helpers.AuthMiddleware, controllers.HandleJoinRoom(chatServer))
+	app.Get("/api/room/:id/image", mylimiter.SimpleLimiterMiddleware(ipBlockInfoMap, mylimiter.SimpleLimiterOpts{
+		Window:        time.Second * 3,
+		MaxReqs:       255,
+		BlockDuration: time.Second * 30,
+		RouteName:     "getroomimage",
+	}), helpers.AuthMiddleware, controllers.HandleGetRoomImage)
 	app.Post("/api/room/:id/leave", mylimiter.SimpleLimiterMiddleware(ipBlockInfoMap, mylimiter.SimpleLimiterOpts{
 		Window:        time.Second * 10,
 		MaxReqs:       10,
@@ -95,5 +101,5 @@ func Setup(app *fiber.App, chatServer *controllers.ChatServer, closeWsChan chan 
 		BlockDuration: time.Minute,
 		Message:       "You have been creating too many rooms. Wait one minute.",
 		RouteName:     "createroom",
-	}), helpers.AuthMiddleware, controllers.HandleCreateRoom)
+	}), helpers.AuthMiddleware, controllers.HandleCreateRoom(chatServer))
 }

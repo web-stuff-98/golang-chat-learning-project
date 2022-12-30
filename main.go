@@ -40,7 +40,7 @@ func main() {
 		uids, rids, seedErr = seed.GenerateSeed(50, 255)
 	} else {
 		log.Println("Loaded .env file. Continuing as in development mode...")
-		//uids, rids, seedErr = seed.GenerateSeed(50, 255)
+		uids, rids, seedErr = seed.GenerateSeed(5, 20)
 	}
 	if seedErr != nil {
 		log.Fatal("Seed error : ", seedErr)

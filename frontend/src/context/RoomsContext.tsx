@@ -5,8 +5,9 @@ import { makeRequest } from "../services/makeRequest";
 export interface IRoom {
   ID: string;
   name: string;
-  base64image?: string;
   author_id: string;
+  img_blur?: string;
+  img_url?: string;
 }
 
 const RoomsContext = createContext<{
@@ -21,7 +22,7 @@ const RoomsContext = createContext<{
 }>({
   rooms: [],
   updateRoomData: () => {},
-  deleteRoom: () => new Promise((req, res) => {}),
+  deleteRoom: () => new Promise(() => {}),
   setAllRooms: () => {},
   ownRooms: false,
   setOwnRooms: () => {},
@@ -38,9 +39,9 @@ export const RoomsProvider = ({ children }: { children: ReactNode }) => {
       let newRooms = old;
       const i = old.findIndex((r) => r.ID === data.ID);
       if (i !== -1) {
-        newRooms[i] = { ...newRooms[i], ...data };
+        newRooms[i] = { ...newRooms[i], ...(data as Omit<any, "img_url">) };
       } else {
-        newRooms = [...newRooms, data as IRoom];
+        newRooms = [...newRooms, data as Omit<IRoom, "img_url">];
       }
       return [...newRooms];
     });

@@ -71,6 +71,7 @@ export default function Room() {
     if (!socket) return;
     socket.onmessage = (e) => {
       let data = JSON.parse(e.data);
+      console.log(JSON.stringify(data));
       if (!data.event_type) {
         //if no event_type, then its a normal room message, so don't ignore it
         delete data.event_type;

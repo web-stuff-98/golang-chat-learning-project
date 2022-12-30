@@ -8,6 +8,15 @@ const getRooms = (getOwnRooms: boolean) =>
 const getRoom = (id: string) =>
   makeRequest(`/api/room/${id}`, { withCredentials: true });
 
+const getRoomImage = async (id: string) => {
+  const data = await makeRequest(`/api/room/${id}/image`, {
+    withCredentials: true,
+    responseType: "arraybuffer",
+  });
+  const blob = new Blob([data], { type: "image/jpeg" });
+  return URL.createObjectURL(blob);
+};
+
 const createRoom = (data: { name: string }) =>
   makeRequest("/api/room", {
     method: "POST",
@@ -52,4 +61,5 @@ export {
   joinRoom,
   leaveRoom,
   uploadRoomImage,
+  getRoomImage,
 };

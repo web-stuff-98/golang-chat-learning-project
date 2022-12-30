@@ -10,6 +10,7 @@ import { IRoom, useRooms } from "../context/RoomsContext";
 import { useAuth } from "../context/AuthContext";
 import ProtectedRoute from "./ProtectedRoute";
 import { useModal } from "../context/ModalContext";
+import Room from "../components/Room";
 
 export default function RoomList() {
   const navigate = useNavigate();
@@ -56,81 +57,7 @@ export default function RoomList() {
           <ResMsg resMsg={resMsg} />
           {!resMsg.pen &&
             rooms.map((room: IRoom) => (
-              <div
-                key={room.ID}
-                style={
-                  room.base64image
-                    ? { backgroundImage: `url(${room.base64image})` }
-                    : {}
-                }
-                className={classes.room}
-              >
-                <h3
-                  style={
-                    room.base64image
-                      ? {
-                          color: "white",
-                          filter: "drop-shadow(0px 2px 3px black)",
-                        }
-                      : {}
-                  }
-                >
-                  {room.name}
-                </h3>
-                <div
-                  style={
-                    room.base64image
-                      ? { filter: "drop-shadow(0px 2px 3px black)" }
-                      : {}
-                  }
-                  className={classes.icons}
-                >
-                  {room.author_id === user?.ID! && (
-                    <IconBtn
-                      onClick={() => navigate(`/room/edit/${room.ID}`)}
-                      Icon={AiFillEdit}
-                      name="Edit room"
-                      ariaLabel="Edit room"
-                      style={room.base64image ? { color: "white" } : {}}
-                    />
-                  )}
-                  {room.author_id === user?.ID! && (
-                    <IconBtn
-                      onClick={() =>
-                        openModal("Confirm", {
-                          err: false,
-                          pen: false,
-                          msg: "Are you sure you want to delete this room?",
-                          confirmationCallback: async () => {
-                            try {
-                              await deleteRoom(room.ID);
-                              closeModal();
-                            } catch (e) {
-                              openModal("Message", {
-                                err: true,
-                                pen: false,
-                                msg: `${e}`,
-                              });
-                            }
-                          },
-                          cancellationCallback: () => {},
-                        })
-                      }
-                      Icon={AiFillDelete}
-                      name="Delete room"
-                      ariaLabel="Delete room"
-                      style={room.base64image ? { color: "white" } : {}}
-                    />
-                  )}
-                  <IconBtn
-                    onClick={() => navigate(`/room/${room.ID}`)}
-                    Icon={IoEnter}
-                    name="Join room"
-                    ariaLabel="Join room"
-                    style={room.base64image ? { color: "white" } : {}}
-                  />
-                </div>
-              </div>
+              <Room room={room}/>
             ))}
         </div>
         <button

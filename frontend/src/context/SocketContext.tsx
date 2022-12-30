@@ -36,10 +36,12 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
     setSocket(socket);
     socket.onmessage = (e) => {
       const data = JSON.parse(e.data);
+      console.log(JSON.stringify(data))
       if (!data.event_type) {
         return; //if no event_type field, then its a chatroom message
       }
       if (data.event_type === "chatroom_update") {
+        console.log("UPDATE")
         if (!ownRooms) {
           updateRoomData(data);
         } else {

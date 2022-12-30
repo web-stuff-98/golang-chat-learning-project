@@ -27,7 +27,7 @@ import (
 )
 
 type InboundMessage struct {
-	Content   string          `json:"msg"`
+	Content   string          `json:"content"`
 	SenderUid string          `json:"uid"`
 	WsConn    *websocket.Conn `json:"-"`
 }
@@ -220,6 +220,7 @@ func HandleWsConn(chatServer *ChatServer, closeWsChan chan string) func(*fiber.C
 					chatServer.chatRooms[i].connections[conn] = true
 					chatServer.chatRooms[i].connectionsByUid[c.uid] = conn
 					foundRoom = true
+					break
 				}
 			}
 			if !foundRoom {
@@ -244,6 +245,7 @@ func HandleWsConn(chatServer *ChatServer, closeWsChan chan string) func(*fiber.C
 				if chatServer.chatRooms[i].roomId == c.id {
 					delete(chatServer.chatRooms[i].connections, conn)
 					delete(chatServer.chatRooms[i].connectionsByUid, c.uid)
+					break
 				}
 			}
 		}()
@@ -322,21 +324,6 @@ func HandleGetRooms(c *fiber.Ctx) error {
 		if err != nil {
 			log.Fatal(err)
 		}
-		//find the room image if it has one, and add the base64 to the data
-		found := db.RoomImageCollection.FindOne(c.Context(), bson.M{"_id": elem.ID})
-		if found.Err() != nil {
-			if found.Err() != mongo.ErrNoDocuments {
-				cur.Close(context.TODO())
-				c.Status(fiber.StatusInternalServerError)
-				return c.JSON(fiber.Map{
-					"message": "Internal error",
-				})
-			}
-		} else {
-			var imageDoc models.RoomImage
-			found.Decode(&imageDoc)
-			elem.Base64image = "data:image/jpeg;base64," + base64.StdEncoding.EncodeToString(imageDoc.Binary.Data)
-		}
 		rooms = append(rooms, elem)
 	}
 	if err := cur.Err(); err != nil {
@@ -373,34 +360,28 @@ func HandleGetRoom(c *fiber.Ctx) error {
 		}
 	}
 
-	var roomImage models.RoomImage
-	found := db.RoomImageCollection.FindOne(c.Context(), bson.M{"_id": c.Params("id")})
-	if found.Err() != nil {
-		if found.Err() != mongo.ErrNoDocuments {
-			c.Status(fiber.StatusInternalServerError)
-			return c.JSON(fiber.Map{
-				"message": "Internal error",
-			})
-		}
-	} else {
-		found.Decode(&roomImage)
-		room.Base64image = "data:image/jpeg;base64," + base64.StdEncoding.EncodeToString(roomImage.Binary.Data)
-	}
-
 	c.Status(fiber.StatusOK)
 	return c.JSON(room)
 }
 
-func HandleCreateRoom(c *fiber.Ctx) error {
-	var body validator.Room
-	if err := c.BodyParser(&body); err != nil {
+func HandleGetRoomImage(c *fiber.Ctx) error {
+	if c.Params("id") == "" {
 		c.Status(fiber.StatusBadRequest)
 		return c.JSON(fiber.Map{
-			"message": "Invalid request",
+			"message": "Bad request",
 		})
 	}
 
-	found := db.RoomCollection.FindOne(c.Context(), bson.M{"author_id": c.Locals("uid").(primitive.ObjectID), "name": bson.M{"$regex": body.Name, "$options": "i"}})
+	oid, err := primitive.ObjectIDFromHex(c.Params("id"))
+	if err != nil {
+		c.Status(fiber.StatusBadRequest)
+		return c.JSON(fiber.Map{
+			"message": "Invalid ID",
+		})
+	}
+
+	var img models.RoomImage
+	found := db.RoomImageCollection.FindOne(c.Context(), bson.M{"_id": oid})
 	if found.Err() != nil {
 		if found.Err() != mongo.ErrNoDocuments {
 			c.Status(fiber.StatusInternalServerError)
@@ -408,40 +389,77 @@ func HandleCreateRoom(c *fiber.Ctx) error {
 				"message": "Internal error",
 			})
 		}
-	} else {
-		c.Status(fiber.StatusBadRequest)
+	}
+	found.Decode(&img)
+	c.Status(fiber.StatusOK)
+	c.Type("image/jpeg")
+	return c.Send(img.Binary.Data)
+}
+
+func HandleCreateRoom(chatServer *ChatServer) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		var body validator.Room
+		if err := c.BodyParser(&body); err != nil {
+			c.Status(fiber.StatusBadRequest)
+			return c.JSON(fiber.Map{
+				"message": "Invalid request",
+			})
+		}
+
+		found := db.RoomCollection.FindOne(c.Context(), bson.M{"author_id": c.Locals("uid").(primitive.ObjectID), "name": bson.M{"$regex": body.Name, "$options": "i"}})
+		if found.Err() != nil {
+			if found.Err() != mongo.ErrNoDocuments {
+				c.Status(fiber.StatusInternalServerError)
+				return c.JSON(fiber.Map{
+					"message": "Internal error",
+				})
+			}
+		} else {
+			c.Status(fiber.StatusBadRequest)
+			return c.JSON(fiber.Map{
+				"message": "You already have another room by that name",
+			})
+		}
+
+		res, err := db.RoomCollection.InsertOne(c.Context(), models.Room{
+			Name:      body.Name,
+			CreatedAt: primitive.NewDateTimeFromTime(time.Now()),
+			UpdatedAt: primitive.NewDateTimeFromTime(time.Now()),
+			Author:    c.Locals("uid").(primitive.ObjectID),
+			Messages:  []models.Message{},
+		})
+
+		if err != nil {
+			c.Status(fiber.StatusInternalServerError)
+			return c.JSON(fiber.Map{
+				"message": "Internal error",
+			})
+		}
+
+		for conn := range chatServer.connections {
+			if conn.Locals("uid").(primitive.ObjectID) != c.Locals("uid").(primitive.ObjectID) {
+				conn.WriteJSON(fiber.Map{
+					"ID":         res.InsertedID.(primitive.ObjectID).Hex(),
+					"name":       body.Name,
+					"author_id":  c.Locals("uid").(primitive.ObjectID).Hex(),
+					"event_type": "chatroom_update",
+				})
+			}
+		}
+
+		c.Status(fiber.StatusCreated)
 		return c.JSON(fiber.Map{
-			"message": "You already have another room by that name",
+			"ID":         res.InsertedID.(primitive.ObjectID).Hex(),
+			"name":       body.Name,
+			"created_at": primitive.NewDateTimeFromTime(time.Now()),
+			"updated_at": primitive.NewDateTimeFromTime(time.Now()),
+			"author_id":  c.Locals("uid").(primitive.ObjectID).Hex(),
 		})
 	}
-
-	res, err := db.RoomCollection.InsertOne(c.Context(), models.Room{
-		Name:      body.Name,
-		CreatedAt: primitive.NewDateTimeFromTime(time.Now()),
-		UpdatedAt: primitive.NewDateTimeFromTime(time.Now()),
-		Author:    c.Locals("uid").(primitive.ObjectID),
-		Messages:  []models.Message{},
-	})
-
-	if err != nil {
-		c.Status(fiber.StatusInternalServerError)
-		return c.JSON(fiber.Map{
-			"message": "Internal error",
-		})
-	}
-
-	c.Status(fiber.StatusCreated)
-	return c.JSON(fiber.Map{
-		"ID":         res.InsertedID.(primitive.ObjectID).Hex(),
-		"name":       body.Name,
-		"created_at": primitive.NewDateTimeFromTime(time.Now()),
-		"updated_at": primitive.NewDateTimeFromTime(time.Now()),
-		"author_id":  c.Locals("uid").(primitive.ObjectID).Hex(),
-	})
 }
 
 // Updates the room name only
-func HandleUpdateRoom(protectedRids map[primitive.ObjectID]struct{}) func(*fiber.Ctx) error {
+func HandleUpdateRoom(protectedRids map[primitive.ObjectID]struct{}, chatServer *ChatServer) func(*fiber.Ctx) error {
 	return func(c *fiber.Ctx) error {
 		if c.Params("id") == "" {
 			c.Status(fiber.StatusBadRequest)
@@ -487,7 +505,7 @@ func HandleUpdateRoom(protectedRids map[primitive.ObjectID]struct{}) func(*fiber
 			for foundRoomsCursor.Next(c.Context()) {
 				var room models.Room
 				foundRoomsCursor.Decode(&room)
-				if room.ID != oid {
+				if room.ID.Hex() != c.Params("id") {
 					foundRoomsCursor.Close(c.Context())
 					c.Status(fiber.StatusBadRequest)
 					return c.JSON(fiber.Map{
@@ -496,6 +514,7 @@ func HandleUpdateRoom(protectedRids map[primitive.ObjectID]struct{}) func(*fiber
 				}
 			}
 		}
+		defer foundRoomsCursor.Close(c.Context())
 
 		found := db.RoomCollection.FindOne(c.Context(), bson.M{"_id": oid})
 		if found.Err() != nil {
@@ -522,6 +541,15 @@ func HandleUpdateRoom(protectedRids map[primitive.ObjectID]struct{}) func(*fiber
 		}
 
 		db.RoomCollection.UpdateByID(c.Context(), oid, bson.D{{"$set", bson.D{{"name", body.Name}}}})
+
+		for conn := range chatServer.connections {
+			if conn.Locals("uid").(primitive.ObjectID) != c.Locals("uid").(primitive.ObjectID) {
+				conn.WriteJSON(fiber.Map{
+					"ID":   oid.Hex(),
+					"name": body.Name,
+				})
+			}
+		}
 
 		c.Status(fiber.StatusOK)
 		return c.JSON(fiber.Map{
@@ -602,6 +630,7 @@ func HandleUploadRoomImage(chatServer *ChatServer) func(*fiber.Ctx) error {
 		defer src.Close()
 
 		var img image.Image
+		var blurImg image.Image
 		var decodeErr error
 		if file.Header.Get("Content-Type") == "image/jpeg" {
 			img, decodeErr = jpeg.Decode(src)
@@ -620,9 +649,17 @@ func HandleUploadRoomImage(chatServer *ChatServer) func(*fiber.Ctx) error {
 			})
 		}
 
-		img = resize.Resize(200, 0, img, resize.Lanczos2)
+		img = resize.Resize(250, 0, img, resize.Lanczos2)
+		blurImg = resize.Resize(4, 0, img, resize.Lanczos2)
 		buf := &bytes.Buffer{}
+		blurBuf := &bytes.Buffer{}
 		if err := jpeg.Encode(buf, img, nil); err != nil {
+			c.Status(fiber.StatusInternalServerError)
+			return c.JSON(fiber.Map{
+				"message": "Internal error",
+			})
+		}
+		if err := jpeg.Encode(blurBuf, blurImg, nil); err != nil {
 			c.Status(fiber.StatusInternalServerError)
 			return c.JSON(fiber.Map{
 				"message": "Internal error",
@@ -639,19 +676,25 @@ func HandleUploadRoomImage(chatServer *ChatServer) func(*fiber.Ctx) error {
 			})
 		}
 
+		imgBlurB64 := "data:image/jpeg;base64," + base64.StdEncoding.EncodeToString(blurBuf.Bytes())
+
+		db.RoomCollection.UpdateByID(c.Context(), roomId, bson.M{"img_blur": imgBlurB64})
+
 		//send the updated chatroom image to all users through websocket api
 		for conn := range chatServer.connections {
 			if conn.Locals("uid").(primitive.ObjectID) != c.Locals("uid").(primitive.ObjectID) {
 				conn.WriteJSON(fiber.Map{
-					"ID":          roomId.Hex(),
-					"base64image": "data:image/jpeg;base64," + base64.StdEncoding.EncodeToString(buf.Bytes()),
-					"event_type":  "chatroom_update",
+					"ID":         roomId.Hex(),
+					"img_url":    "data:image/jpeg;base64," + base64.StdEncoding.EncodeToString(buf.Bytes()),
+					"img_blur":   imgBlurB64,
+					"event_type": "chatroom_update",
 				})
 			}
 		}
 
 		//clear the buffer. garbage collection does this automatically but this might be a little faster
 		buf = nil
+		blurBuf = nil
 
 		c.Status(fiber.StatusOK)
 		return c.JSON(fiber.Map{
@@ -730,12 +773,10 @@ func HandleDeleteRoom(chatServer *ChatServer, protectedRids map[primitive.Object
 
 		//send the socket event that removes the chatroom for other users
 		for conn := range chatServer.connections {
-			if conn.Locals("uid").(primitive.ObjectID) != c.Locals("uid").(primitive.ObjectID) {
-				conn.WriteJSON(fiber.Map{
-					"ID":         oid.Hex(),
-					"event_type": "chatroom_delete",
-				})
-			}
+			conn.WriteJSON(fiber.Map{
+				"ID":         oid.Hex(),
+				"event_type": "chatroom_delete",
+			})
 		}
 
 		c.Status(fiber.StatusOK)
@@ -763,11 +804,18 @@ func HandleJoinRoom(chatServer *ChatServer) func(*fiber.Ctx) error {
 
 		var room models.Room
 		found := db.RoomCollection.FindOne(c.Context(), bson.M{"_id": id})
-		if found == nil {
-			c.Status(fiber.StatusNotFound)
-			return c.JSON(fiber.Map{
-				"message": "Room not found",
-			})
+		if found.Err() != nil {
+			if found.Err() == mongo.ErrNoDocuments {
+				c.Status(fiber.StatusNotFound)
+				return c.JSON(fiber.Map{
+					"message": "Room not found",
+				})
+			} else {
+				c.Status(fiber.StatusInternalServerError)
+				return c.JSON(fiber.Map{
+					"message": "Internal error",
+				})
+			}
 		} else {
 			found.Decode(&room)
 		}
