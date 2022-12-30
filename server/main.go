@@ -66,9 +66,6 @@ func main() {
 		if seedErr != nil {
 			log.Fatal("Seed error : ", seedErr)
 		}
-
-		log.Println(len(uids))
-		log.Println(len(rids))
 	}()
 
 	/* -------- Set up routes and send the complete maps of protected ids -------- */

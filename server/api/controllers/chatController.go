@@ -27,9 +27,10 @@ import (
 )
 
 type InboundMessage struct {
-	Content   string          `json:"content"`
-	SenderUid string          `json:"uid"`
-	WsConn    *websocket.Conn `json:"-"`
+	ID        primitive.ObjectID `bson:"_id" json:"ID"`
+	Content   string             `json:"content"`
+	SenderUid string             `json:"uid"`
+	WsConn    *websocket.Conn    `json:"-"`
 }
 
 type ChatServer struct {
@@ -265,10 +266,12 @@ func HandleWsConn(chatServer *ChatServer, closeWsChan chan string) func(*fiber.C
 				}*/
 				break
 			}
+			msgId := primitive.NewObjectID()
 			chatServer.inbound <- InboundMessage{
 				WsConn:    c,
 				Content:   string(msg),
 				SenderUid: c.Locals("uid").(primitive.ObjectID).Hex(),
+				ID:        msgId,
 			}
 			// Find room and write message to db
 			for i := range chatServer.chatRooms {
@@ -289,6 +292,7 @@ func HandleWsConn(chatServer *ChatServer, closeWsChan chan string) func(*fiber.C
 							Content:   string(msg),
 							Uid:       c.Locals("uid").(primitive.ObjectID).Hex(),
 							Timestamp: primitive.NewDateTimeFromTime(time.Now()),
+							ID:        msgId,
 						}
 						db.RoomCollection.UpdateOne(context.TODO(), bson.M{"_id": oid}, bson.M{"$push": bson.M{"messages": msg}})
 					}

@@ -50,7 +50,7 @@ export default function RoomList() {
       <div className={classes.container}>
         <div className={classes.rooms}>
           <ResMsg resMsg={resMsg} />
-          {!resMsg.pen && rooms.map((room: IRoom) => <Room room={room} />)}
+          {!resMsg.pen && rooms.map((room: IRoom) => <Room key={room.ID} room={room} />)}
         </div>
         <button
           className={classes.back}

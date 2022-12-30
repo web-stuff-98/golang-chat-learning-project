@@ -15,6 +15,7 @@ export interface IMsg {
   content: string;
   uid: string;
   timestamp: Date;
+  ID: string;
 }
 
 export default function Room() {
@@ -46,7 +47,12 @@ export default function Room() {
     setMessageInput("");
     setMessages((p) => [
       ...p,
-      { content: messageInput, timestamp: new Date(), uid: user?.ID! },
+      {
+        content: messageInput,
+        timestamp: new Date(),
+        uid: user?.ID!,
+        ID: `${Math.random()}${Math.random()}`,
+      },
     ]);
   };
 
@@ -95,7 +101,7 @@ export default function Room() {
           }
         }
         if (data.event_type === "pfp_update") {
-          updateUserData(data)
+          updateUserData(data);
         }
       }
     };
@@ -112,7 +118,7 @@ export default function Room() {
         <div className={classes.messages}>
           {messages && messages.length && !resMsg.pen ? (
             messages.map((msg) => (
-              <Message msg={msg} reverse={msg.uid !== user?.ID} />
+              <Message key={msg.ID} msg={msg} reverse={msg.uid !== user?.ID} />
             ))
           ) : (
             <p className={classes.roomHasNoMessages}>

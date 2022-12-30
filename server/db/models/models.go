@@ -21,6 +21,7 @@ type Session struct {
 }
 
 type Message struct {
+	ID        primitive.ObjectID `bson:"_id,omitempty" json:"ID"` // omitempty to protect against zeroed _id insertion
 	Content   string             `bson:"content" json:"content"`
 	Uid       string             `bson:"uid" json:"uid"`
 	Timestamp primitive.DateTime `bson:"timestamp" json:"timestamp"`
