@@ -24,6 +24,9 @@ export default function Nav() {
             </Link>
           </>
         )}
+        <Link to="/policy">
+          <span>Policy</span>
+        </Link>
         {user && (
           <>
             <button
@@ -42,7 +45,11 @@ export default function Nav() {
           </>
         )}
       </div>
-      {user && <div className={classes.userContainer}><User light reverse uid={user?.ID} user={user} /></div>}
+      {user && (
+        <div className={classes.userContainer}>
+          <User light reverse uid={user?.ID} user={user} />
+        </div>
+      )}
     </nav>
   );
 }
