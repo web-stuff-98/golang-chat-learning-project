@@ -660,8 +660,8 @@ func HandleUploadRoomImage(chatServer *ChatServer) func(*fiber.Ctx) error {
 			})
 		}
 
-		img = resize.Resize(250, 0, img, resize.Lanczos2)
-		blurImg = resize.Resize(4, 0, img, resize.Lanczos2)
+		img = resize.Resize(220, 0, img, resize.Lanczos2)
+		blurImg = resize.Resize(6, 1, img, resize.Lanczos2)
 		buf := &bytes.Buffer{}
 		blurBuf := &bytes.Buffer{}
 		if err := jpeg.Encode(buf, img, nil); err != nil {

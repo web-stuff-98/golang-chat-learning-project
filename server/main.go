@@ -35,6 +35,7 @@ func main() {
 	/* -------- Create map to store client IP addresses and associated data used by rate limiter -------- */
 	ipBlockInfoMap := make(map[string]map[string]mylimiter.BlockInfo)
 
+	/* -------- Create maps to store IDs of example rooms and users so they cant be modified -------- */
 	uids := make(map[primitive.ObjectID]struct{})
 	rids := make(map[primitive.ObjectID]struct{})
 
@@ -59,7 +60,7 @@ func main() {
 	var seedErr error
 	go func() {
 		if !production {
-			uids, rids, seedErr = seed.GenerateSeed(5, 70)
+			uids, rids, seedErr = seed.GenerateSeed(5, 10)
 		} else {
 			uids, rids, seedErr = seed.GenerateSeed(50, 255)
 		}
@@ -68,23 +69,35 @@ func main() {
 		}
 	}()
 
-	/* -------- Set up routes and send the complete maps of protected ids -------- */
+	/* -------- Set up routes with all the data needed sent down -------- */
 	routes.Setup(app, chatServer, closeWsChan, &uids, &rids, ipBlockInfoMap, production)
 
-	/* -------- Clean up expired sessions still in the database every 960 seconds -------- */
-	sessionCleanupTicker := time.NewTicker(960 * time.Second)
-	quitSessionCleanup := make(chan struct{})
+	/* -------- Every 10 minutes clean up expired sessions and ipBlockInfo map -------- */
+	cleanupTicker := time.NewTicker(10 * time.Second)
+	quitCleanup := make(chan struct{})
 	go func() {
 		for {
 			select {
-			case <-sessionCleanupTicker.C:
+			case <-cleanupTicker.C:
+				log.Println("Cleanup ticker")
 				db.SessionCollection.DeleteMany(context.TODO(), bson.M{"exp": bson.M{"$lt": primitive.NewDateTimeFromTime(time.Now())}})
-			case <-quitSessionCleanup:
-				sessionCleanupTicker.Stop()
+				for ip, routeBlockInfoMap := range ipBlockInfoMap {
+					for routeName, blockInfo := range routeBlockInfoMap {
+						if blockInfo.RequestsInWindow >= blockInfo.OptsUsed.MaxReqs && time.Now().After(blockInfo.LastRequest.Add(blockInfo.OptsUsed.BlockDuration)) {
+							delete(routeBlockInfoMap, routeName)
+						}
+					}
+					if len(routeBlockInfoMap) == 0 {
+						delete(ipBlockInfoMap, ip)
+					}
+				}
+			case <-quitCleanup:
+				cleanupTicker.Stop()
 				return
 			}
 		}
 	}()
+
 	/* -------- Delete accounts older than 20 minutes (changestream delete event will trigger deleting the users rooms and messages also) -------- */
 	oldAccountCleanupTicker := time.NewTicker(120 * time.Second)
 	quitOldAccountCleanup := make(chan struct{})
@@ -118,7 +131,7 @@ func main() {
 		}
 	}()
 	defer func() {
-		close(quitSessionCleanup)
+		close(quitCleanup)
 		close(quitOldAccountCleanup)
 	}()
 

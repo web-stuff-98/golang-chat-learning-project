@@ -10,13 +10,24 @@ export default function RoomMenu() {
   return (
     <ProtectedRoute user={user}>
       <div className={classes.container}>
-        {<button onClick={() => navigate("/room/list")}>All rooms</button>}
-        {
-          <button onClick={() => navigate("/room/list?own=true")}>
-            Your rooms
-          </button>
-        }
-        {<button onClick={() => navigate("/room/edit")}>Create</button>}
+        <button
+          aria-label="Open all rooms"
+          onClick={() => navigate("/room/list")}
+        >
+          All rooms
+        </button>
+        <button
+          aria-label="Open your rooms"
+          onClick={() => navigate("/room/list?own=true")}
+        >
+          Your rooms
+        </button>
+        <button
+          aria-label="Create a room"
+          onClick={() => navigate("/room/edit")}
+        >
+          Create
+        </button>
       </div>
     </ProtectedRoute>
   );

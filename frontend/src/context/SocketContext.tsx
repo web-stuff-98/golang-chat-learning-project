@@ -39,8 +39,11 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
     socket.onmessage = (e) => {
       const data = JSON.parse(e.data);
       console.log(JSON.stringify(data));
+      /* if no event_type field, then its a chatroom message
+      socket.onmessage func will be taken over by Room page component
+      when the user is in a room. */
       if (!data.event_type) {
-        return; //if no event_type field, then its a chatroom message
+        return; 
       }
       if (data.event_type === "chatroom_update") {
         console.log("UPDATE");

@@ -74,7 +74,7 @@ func GenerateToken(c *fiber.Ctx, uid primitive.ObjectID, expiresAt time.Time, ke
 	}
 	claims := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.StandardClaims{
 		Issuer:    inserted.InsertedID.(primitive.ObjectID).Hex(), //the issuer is the session id
-		ExpiresAt: expiresAt.Unix(),                               //not sure if this should be a unix timestamp
+		ExpiresAt: expiresAt.Unix(),
 	})
 	token, err := claims.SignedString([]byte(os.Getenv("SECRET")))
 	return token, nil
@@ -170,7 +170,7 @@ func DownloadImageURL(inputURL string) io.ReadCloser {
 }
 func DownloadRandomImage(pfp bool) io.ReadCloser {
 	if !pfp {
-		return DownloadImageURL("https://picsum.photos/300/200")
+		return DownloadImageURL("https://picsum.photos/300/100")
 	} else {
 		return DownloadImageURL("https://100k-faces.glitch.me/random-image")
 	}

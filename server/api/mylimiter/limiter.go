@@ -7,8 +7,9 @@ import (
 )
 
 type BlockInfo struct {
-	lastRequest      time.Time
-	requestsInWindow uint8
+	LastRequest      time.Time
+	RequestsInWindow uint8
+	OptsUsed         SimpleLimiterOpts
 }
 
 type SimpleLimiterOpts struct {
@@ -26,8 +27,8 @@ func SimpleLimiterMiddleware(ipInfoMap map[string]map[string]BlockInfo, opts Sim
 		if ipInfoOk {
 			if routeInfoOk {
 				// First check if blocked
-				if routeInfo.requestsInWindow >= opts.MaxReqs {
-					if time.Now().After(routeInfo.lastRequest.Add(opts.BlockDuration)) {
+				if routeInfo.RequestsInWindow >= opts.MaxReqs {
+					if time.Now().After(routeInfo.LastRequest.Add(opts.BlockDuration)) {
 						// The IP was blocked, but is now no longer blocked
 						delete(ipInfoMap[c.IP()], opts.RouteName)
 						return c.Next()
@@ -45,28 +46,29 @@ func SimpleLimiterMiddleware(ipInfoMap map[string]map[string]BlockInfo, opts Sim
 						})
 					}
 				}
-			}
-			if routeInfoOk {
 				// If not blocked add to the number of requests
-				if routeInfo.lastRequest.Before(time.Now().Add(-opts.Window)) {
-					routeInfo.requestsInWindow = 1
+				if routeInfo.LastRequest.Before(time.Now().Add(-opts.Window)) {
+					routeInfo.RequestsInWindow = 1
 				} else {
-					routeInfo.requestsInWindow += 1
+					routeInfo.RequestsInWindow += 1
 				}
-				routeInfo.lastRequest = time.Now()
+				routeInfo.LastRequest = time.Now()
 				ipInfoMap[c.IP()][opts.RouteName] = routeInfo
 			} else {
 				innerMap := make(map[string]BlockInfo)
 				innerMap[opts.RouteName] = BlockInfo{
-					lastRequest:      time.Now(),
-					requestsInWindow: 1,
+					LastRequest:      time.Now(),
+					RequestsInWindow: 1,
+					OptsUsed:         opts,
 				}
 				ipInfoMap[c.IP()] = innerMap
 			}
 		} else {
 			innerMap := make(map[string]BlockInfo)
 			innerMap[opts.RouteName] = BlockInfo{
-				lastRequest: time.Now(),
+				LastRequest:      time.Now(),
+				RequestsInWindow: 1,
+				OptsUsed:         opts,
 			}
 			ipInfoMap[c.IP()] = innerMap
 		}

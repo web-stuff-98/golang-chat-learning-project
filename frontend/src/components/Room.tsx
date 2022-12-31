@@ -1,6 +1,6 @@
 import { useAuth } from "../context/AuthContext";
 import { IRoom, useRooms } from "../context/RoomsContext";
-import { useState, useEffect, useRef, useLayoutEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import classes from "../styles/pages/RoomList.module.scss";
 import { useNavigate } from "react-router-dom";
 import IconBtn from "./IconBtn";
@@ -8,13 +8,11 @@ import { AiFillEdit, AiFillDelete } from "react-icons/ai";
 import { IoEnter } from "react-icons/io5";
 import { useModal } from "../context/ModalContext";
 import { getRoomImage } from "../services/rooms";
-import { useSocket } from "../context/SocketContext";
 
 export default function Room({ room }: { room: IRoom }) {
   const { user } = useAuth();
   const { deleteRoom, updateRoomData, getRoomData } = useRooms();
   const { openModal, closeModal } = useModal();
-  const { socket } = useSocket();
   const navigate = useNavigate();
 
   const [fetching, setFetching] = useState(false);
@@ -28,16 +26,16 @@ export default function Room({ room }: { room: IRoom }) {
       if (!fetching)
         getRoomImage(room.ID)
           .then((url) => {
-            updateRoomData({ID:room.ID, img_url: url})
+            updateRoomData({ ID: room.ID, img_url: url }, true);
           })
           .catch((e) => {
             console.error(e);
           })
           .finally(() => setFetching(false));
     } else {
-      const r = getRoomData(room.ID)
+      const r = getRoomData(room.ID);
       URL.revokeObjectURL(r?.img_url!);
-      updateRoomData({ID:room.ID, img_url:undefined})
+      updateRoomData({ ID: room.ID, img_url: undefined });
       setFetching(false);
     }
   });

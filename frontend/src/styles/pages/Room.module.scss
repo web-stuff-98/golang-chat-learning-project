@@ -8,7 +8,7 @@
   width: calc(100% - var(--padding) * 2);
 
   .roomName {
-    
+    font-weight: 600;
   }
 
   .messages {
@@ -42,7 +42,7 @@
       .messageContent {
         font-size: var(--font-xs);
         line-height: 1;
-        padding: 0 var(--padding);
+        padding: 0 calc(var(--padding) * 2);
         flex-grow: 1;
       }
     }

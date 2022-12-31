@@ -32,7 +32,7 @@ func Setup(app *fiber.App, chatServer *controllers.ChatServer, closeWsChan chan 
 	app.Post("/api/user/deleteacc", helpers.AuthMiddleware, controllers.HandleDeleteUser(protectedUids))
 	app.Post("/api/user/refresh", mylimiter.SimpleLimiterMiddleware(ipBlockInfoMap, mylimiter.SimpleLimiterOpts{
 		Window:        time.Second * 120,
-		MaxReqs:       5,
+		MaxReqs:       30,
 		BlockDuration: time.Minute * 2,
 		RouteName:     "refresh",
 	}), controllers.HandleRefresh(closeWsChan, production))
@@ -98,7 +98,7 @@ func Setup(app *fiber.App, chatServer *controllers.ChatServer, closeWsChan chan 
 	app.Post("/api/room", mylimiter.SimpleLimiterMiddleware(ipBlockInfoMap, mylimiter.SimpleLimiterOpts{
 		Window:        time.Minute,
 		MaxReqs:       5,
-		BlockDuration: time.Minute,
+		BlockDuration: time.Second * 10,
 		Message:       "You have been creating too many rooms. Wait one minute.",
 		RouteName:     "createroom",
 	}), helpers.AuthMiddleware, controllers.HandleCreateRoom(chatServer))

@@ -32,7 +32,7 @@ export default function Layout() {
         const properties: CSSProperties = {
           width: "17rem",
           height: "fit-content",
-          maxWidth: "min(17rem, calc(100vw - 0.5rem))",
+          maxWidth: "min(17rem, calc(100vw - 2rem))",
           background: "var(--foreground)",
           border: "1px solid var(--base-medium)",
           borderRadius: "var(--border-radius)",

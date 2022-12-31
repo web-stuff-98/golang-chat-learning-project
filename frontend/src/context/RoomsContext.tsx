@@ -12,7 +12,10 @@ export interface IRoom {
 
 const RoomsContext = createContext<{
   rooms: IRoom[];
-  updateRoomData: (data: Omit<Partial<IRoom>, "event_type">) => void;
+  updateRoomData: (
+    data: Omit<Partial<IRoom>, "event_type">,
+    dontAddIfNoId?: boolean
+  ) => void;
   deleteRoom: (id: string) => Promise<void>;
   setAllRooms: (rooms: IRoom[]) => void;
   ownRooms: boolean;
@@ -34,13 +37,13 @@ export const RoomsProvider = ({ children }: { children: ReactNode }) => {
   const [rooms, setRooms] = useState<IRoom[]>([]);
   const [ownRooms, setOwnRooms] = useState(false);
 
-  const updateRoomData = (data: Partial<IRoom>) => {
+  const updateRoomData = (data: Partial<IRoom>, dontAddIfNoId?: boolean) => {
     setRooms((old) => {
       let newRooms = old;
       const i = old.findIndex((r) => r.ID === data.ID);
       if (i !== -1) {
         newRooms[i] = { ...newRooms[i], ...(data as Omit<any, "img_url">) };
-      } else {
+      } else if (!dontAddIfNoId) {
         newRooms = [...newRooms, data as Omit<IRoom, "img_url">];
       }
       return [...newRooms];

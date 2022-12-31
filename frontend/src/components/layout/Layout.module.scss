@@ -1,7 +1,7 @@
 .container {
   display: flex;
-  height: calc(100vh - var(--header-height));
-  padding-top:var(--header-height);
+  height: calc(100vh - calc(var(--nav-height) + var(--header-height)));
+  padding-top:calc(var(--nav-height) + var(--header-height));
   position: relative;
 
   .backgroundOuterContainer {
@@ -78,8 +78,8 @@
 
     .navLinks {
       display: flex;
-      gap: min(1rem, 2vw);
-      padding-left: 0.866rem;
+      gap: min(0.75rem, 1vw);
+      padding-left: min(0.866rem, 2.5vw);
       margin: 0;
       * {
         padding: 0;
@@ -87,7 +87,7 @@
         color: white;
         text-decoration: none;
         font-weight: 600;
-        font-size: min(1.25rem, 4vw);
+        font-size: min(1.25rem, 4.25vw);
       }
     }
   }

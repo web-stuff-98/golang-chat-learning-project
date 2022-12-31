@@ -21,6 +21,8 @@ func GenerateSeed(numUsers uint8, numRooms uint8) (uids map[primitive.ObjectID]s
 	// Drop DB
 	db.DB.Drop(context.TODO())
 
+	log.Println("Generating seed...")
+
 	// Initialize empty maps for user IDs and room IDs
 	uids = make(map[primitive.ObjectID]struct{})
 	rids = make(map[primitive.ObjectID]struct{})
@@ -44,6 +46,8 @@ func GenerateSeed(numUsers uint8, numRooms uint8) (uids map[primitive.ObjectID]s
 		}
 		rids[rid] = struct{}{}
 	}
+
+	log.Println("Seed generated.")
 
 	return uids, rids, nil
 }
@@ -76,7 +80,6 @@ func generateUser(i uint8) (uid primitive.ObjectID, err error) {
 		return primitive.NilObjectID, err
 	}
 	buf = nil
-	log.Println("Generated user ", inserted.InsertedID.(primitive.ObjectID).Hex())
 	return inserted.InsertedID.(primitive.ObjectID), nil
 }
 
@@ -90,8 +93,8 @@ func generateRoom(i uint8, uid primitive.ObjectID) (rid primitive.ObjectID, err 
 	if decodeErr != nil {
 		return primitive.NilObjectID, decodeErr
 	}
-	img = resize.Resize(250, 0, img, resize.Lanczos2)
-	imgBlur = resize.Resize(4, 0, img, resize.Lanczos2)
+	img = resize.Resize(220, 0, img, resize.Lanczos2)
+	imgBlur = resize.Resize(6, 1, img, resize.Lanczos2)
 	buf := &bytes.Buffer{}
 	blurBuf := &bytes.Buffer{}
 	if err := jpeg.Encode(buf, img, nil); err != nil {
@@ -115,7 +118,6 @@ func generateRoom(i uint8, uid primitive.ObjectID) (rid primitive.ObjectID, err 
 	}); err != nil {
 		return primitive.NilObjectID, err
 	}
-	log.Println("Generated room ", inserted.InsertedID.(primitive.ObjectID).Hex())
 	return inserted.InsertedID.(primitive.ObjectID), nil
 }
 

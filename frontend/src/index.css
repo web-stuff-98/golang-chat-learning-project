@@ -22,9 +22,11 @@ button {
   border: 1px solid var(--base-medium);
 }
 input {
-  outline: none;
   margin: 0;
   background: none;
+}
+input:focus {
+  outline: 1px solid rgba(0,128,255, 0.5);
 }
 button {
   cursor: pointer;
@@ -64,13 +66,13 @@ hr {
   background: #f0f1f3;
 
   /* Component dimensions */
-  --nav-height: 2.666rem;
+  --nav-height: 2.866rem;
   --header-height: 4.75rem;
 
   /* Component & layout colours */
   --foreground: white;
   --background: #f0f1f3;
-  --nav: rgb(9, 9, 9);
+  --nav: rgb(19, 19, 19);
   --header: linear-gradient(to top, rgb(16, 16, 16) 0%, rgb(8,8,8) 100%);
 
   /* Component & Text Colours */
@@ -103,8 +105,8 @@ hr {
   /* Font sizes */
   --font-lg: 1.5rem;
   --font-md: 1rem;
-  --font-sm: 0.9rem;
-  --font-xs: 0.75rem;
+  --font-sm: 0.9166rem;
+  --font-xs: 0.8rem;
 
   --cross-background: url(../public/crossbackground.png);
 }
@@ -112,7 +114,7 @@ hr {
 .darkMode {
   background: #0d0d0d;
 
-  --nav: rgb(14, 14, 14);
+  --nav: rgb(15, 15, 15);
 
   /* Component & layout colours */
   --foreground: rgb(14, 14, 14);
