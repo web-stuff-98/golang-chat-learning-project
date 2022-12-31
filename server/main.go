@@ -73,13 +73,12 @@ func main() {
 	routes.Setup(app, chatServer, closeWsChan, &uids, &rids, ipBlockInfoMap, production)
 
 	/* -------- Every 10 minutes clean up expired sessions and ipBlockInfo map -------- */
-	cleanupTicker := time.NewTicker(10 * time.Second)
+	cleanupTicker := time.NewTicker(10 * time.Minute)
 	quitCleanup := make(chan struct{})
 	go func() {
 		for {
 			select {
 			case <-cleanupTicker.C:
-				log.Println("Cleanup ticker")
 				db.SessionCollection.DeleteMany(context.TODO(), bson.M{"exp": bson.M{"$lt": primitive.NewDateTimeFromTime(time.Now())}})
 				for ip, routeBlockInfoMap := range ipBlockInfoMap {
 					for routeName, blockInfo := range routeBlockInfoMap {
