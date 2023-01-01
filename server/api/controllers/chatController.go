@@ -198,7 +198,6 @@ func NewServer() (*ChatServer, chan string, chan string, error) {
 					db.RoomImageCollection.DeleteOne(context.TODO(), bson.M{"_id": doc.ID})
 				} else {
 					//delete users messages in room. chatgpt for pipeline.
-					uid, _ := primitive.ObjectIDFromHex(uid)
 					pipeline := bson.D{
 						{Key: "$set", Value: bson.D{
 							{Key: "messages", Value: bson.A{
