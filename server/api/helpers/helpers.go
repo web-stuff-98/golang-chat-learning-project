@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/web-stuff-98/golang-chat-learning-project/db"
-	"github.com/web-stuff-98/golang-chat-learning-project/db/models"
+	"github.com/web-stuff-98/golang-chat-learning-project/models"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gofiber/fiber/v2"

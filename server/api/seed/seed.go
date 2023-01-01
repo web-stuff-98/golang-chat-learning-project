@@ -13,7 +13,7 @@ import (
 	"github.com/nfnt/resize"
 	"github.com/web-stuff-98/golang-chat-learning-project/api/helpers"
 	"github.com/web-stuff-98/golang-chat-learning-project/db"
-	"github.com/web-stuff-98/golang-chat-learning-project/db/models"
+	"github.com/web-stuff-98/golang-chat-learning-project/models"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 

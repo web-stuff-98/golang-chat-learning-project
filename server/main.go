@@ -13,7 +13,7 @@ import (
 	"github.com/web-stuff-98/golang-chat-learning-project/api/routes"
 	"github.com/web-stuff-98/golang-chat-learning-project/api/seed"
 	"github.com/web-stuff-98/golang-chat-learning-project/db"
-	"github.com/web-stuff-98/golang-chat-learning-project/db/models"
+	"github.com/web-stuff-98/golang-chat-learning-project/models"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
