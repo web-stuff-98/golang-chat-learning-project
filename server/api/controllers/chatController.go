@@ -198,6 +198,7 @@ func NewServer() (*ChatServer, chan string, chan string, error) {
 					db.RoomImageCollection.DeleteOne(context.TODO(), bson.M{"_id": doc.ID})
 				} else {
 					//delete users messages in room. chatgpt for pipeline.
+					uid, _ := primitive.ObjectIDFromHex(uid)
 					pipeline := bson.D{
 						{Key: "$set", Value: bson.D{
 							{Key: "messages", Value: bson.A{
@@ -206,14 +207,14 @@ func NewServer() (*ChatServer, chan string, chan string, error) {
 										{Key: "input", Value: "$messages"},
 										{Key: "as", Value: "m"},
 										{Key: "cond", Value: bson.D{
-											{Key: "$ne", Value: bson.A{"$$m.uid", "user_id"}},
+											{Key: "$ne", Value: bson.A{"$$m.uid", uid}},
 										}},
 									}},
 								},
 							}},
 						}},
 					}
-					db.RoomCollection.UpdateOne(context.TODO(), bson.M{"_id": doc.ID}, mongo.Pipeline{pipeline})
+					db.RoomCollection.UpdateOne(context.TODO(), bson.M{"_id": doc.ID}, pipeline)
 				}
 				//delete users pfp
 				db.PfpCollection.DeleteOne(context.TODO(), bson.M{"_id": doc.ID})
