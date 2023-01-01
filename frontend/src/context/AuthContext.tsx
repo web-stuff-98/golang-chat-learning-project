@@ -7,6 +7,7 @@ export interface IUser {
   ID: string;
   username: string;
   base64pfp?: string;
+  token?: string; //used to authenticate ws connection. its the refresh_token cookie
 }
 
 const AuthContext = createContext<{
@@ -30,24 +31,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const navigate = useNavigate();
 
   const login = async (username: string, password: string) => {
-    const res = await makeRequest("/api/user/login", {
+    const user = await makeRequest("/api/user/login", {
       method: "POST",
       headers: { "Content-Type": "application/json;charset=UTF-8" },
       data: { username, password },
       withCredentials: true,
     });
-    setUser(res);
+    setUser(user);
+    console.log("Token : ", user.token);
     navigate("/room/menu");
   };
 
   const register = async (username: string, password: string) => {
-    const res = await makeRequest("/api/user/register", {
+    const user = await makeRequest("/api/user/register", {
       method: "POST",
       headers: { "Content-Type": "application/json;charset=UTF-8" },
       data: { username, password },
       withCredentials: true,
     });
-    setUser(res);
+    setUser(user);
+    console.log("Token : ", user.token);
   };
 
   const logout = async () => {
@@ -98,9 +101,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [user]);
 
   const updateUserState = (user: Partial<IUser>) =>
-    setUser((old) => {
-      return { ...old, ...user } as IUser;
-    });
+    setUser((old) => ({ ...old, ...user } as IUser));
 
   return (
     <AuthContext.Provider

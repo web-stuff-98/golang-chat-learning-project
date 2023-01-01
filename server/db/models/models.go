@@ -4,7 +4,7 @@ import "go.mongodb.org/mongo-driver/bson/primitive"
 
 type User struct {
 	ID        primitive.ObjectID `bson:"_id,omitempty"`
-	Username  string             `bson:"username" json:"username"`
+	Username  string             `bson:"username,maxlength=15" json:"username"`
 	Password  string             `bson:"password" json:"-"`
 	Base64pfp string             `bson:"-" json:"base64pfp,omitempty"`
 }
@@ -22,14 +22,14 @@ type Session struct {
 
 type Message struct {
 	ID        primitive.ObjectID `bson:"_id,omitempty" json:"ID"` // omitempty to protect against zeroed _id insertion
-	Content   string             `bson:"content" json:"content"`
+	Content   string             `bson:"content,maxlength=200" json:"content"`
 	Uid       string             `bson:"uid" json:"uid"`
 	Timestamp primitive.DateTime `bson:"timestamp" json:"timestamp"`
 }
 
 type Room struct {
 	ID        primitive.ObjectID `bson:"_id,omitempty" json:"ID"` // omitempty to protect against zeroed _id insertion
-	Name      string             `bson:"name" json:"name"`
+	Name      string             `bson:"name,maxlength=24" json:"name"`
 	Author    primitive.ObjectID `bson:"author_id" json:"author_id"`
 	CreatedAt primitive.DateTime `bson:"created_at" json:"created_at"`
 	UpdatedAt primitive.DateTime `bson:"updated_at" json:"updated_at"`

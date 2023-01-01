@@ -342,7 +342,8 @@ func HandleRefresh(closeWsChan chan string, production bool) fiber.Handler {
 		})
 
 		return c.JSON(fiber.Map{
-			"_id": user["_id"],
+			"_id":   user["_id"],
+			"token": token,
 		})
 	}
 }

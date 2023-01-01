@@ -22,7 +22,12 @@ export default function Message({
         reverse={reverse}
         user={getUserData(msg.uid)}
       />
-      <div className={classes.messageContent}>{msg.content}</div>
+      <div
+        style={reverse ? { textAlign: "right" } : {}}
+        className={classes.messageContent}
+      >
+        {msg.content}
+      </div>
     </div>
   );
 }

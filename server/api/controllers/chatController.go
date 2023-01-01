@@ -113,15 +113,41 @@ func NewServer() (*ChatServer, chan string, chan string, error) {
 		chatRooms: make([]*ChatRoom, 0),
 	}
 
+	/* ------------------ Handle inbound messages ------------------ */
 	go func() {
 		for {
 			msg := <-chatServer.inbound
+			log.Println("Inbound message")
+			if msg.Content == "" {
+				msg.WsConn.WriteJSON(fiber.Map{
+					"event_type": "chatroom_err",
+					"content":    "You cannot submit an empty message",
+				})
+				return
+			}
+			if len(msg.Content) > 200 {
+				msg.WsConn.WriteJSON(fiber.Map{
+					"event_type": "chatroom_err",
+					"content":    "Message too long. Max 200 characters",
+				})
+				return
+			}
 			for i := range chatServer.chatRooms {
 				conn := chatServer.chatRooms[i].connectionsByUid[msg.SenderUid]
 				if conn != nil {
 					for connI := range chatServer.chatRooms[i].connections {
 						if conn != connI && connI != nil {
-							connI.WriteJSON(msg)
+							defer func() {
+								if r := recover(); r != nil {
+									log.Println("Recovered from nil pointer dereference: ", r)
+								}
+							}()
+							err := connI.WriteJSON(msg)
+							if err != nil {
+								log.Println(err)
+							} else {
+								log.Println("Wrote inbound message to connection")
+							}
 						}
 					}
 				}
@@ -129,6 +155,7 @@ func NewServer() (*ChatServer, chan string, chan string, error) {
 		}
 	}()
 
+	/* ------------------ Close websocket channel ------------------ */
 	go func() {
 		for {
 			uid := <-closeWsChan
@@ -138,6 +165,7 @@ func NewServer() (*ChatServer, chan string, chan string, error) {
 		}
 	}()
 
+	/* ------------------ Delete user channel ------------------ */
 	go func() {
 		for {
 			uid := <-deleteUserChan
@@ -171,14 +199,14 @@ func NewServer() (*ChatServer, chan string, chan string, error) {
 				} else {
 					//delete users messages in room. chatgpt for pipeline.
 					pipeline := bson.D{
-						{"$set", bson.D{
-							{"messages", bson.A{
+						{Key: "$set", Value: bson.D{
+							{Key: "messages", Value: bson.A{
 								bson.D{
-									{"$filter", bson.D{
-										{"input", "$messages"},
-										{"as", "m"},
-										{"cond", bson.D{
-											{"$ne", bson.A{"$$m.uid", "user_id"}},
+									{Key: "$filter", Value: bson.D{
+										{Key: "input", Value: "$messages"},
+										{Key: "as", Value: "m"},
+										{Key: "cond", Value: bson.D{
+											{Key: "$ne", Value: bson.A{"$$m.uid", "user_id"}},
 										}},
 									}},
 								},
@@ -195,29 +223,34 @@ func NewServer() (*ChatServer, chan string, chan string, error) {
 		}
 	}()
 
-	return chatServer, closeWsChan, deleteUserChan, nil
-}
-
-/* ------------------ WS HTTP API ROUTES ------------------ */
-
-func HandleWsConn(chatServer *ChatServer, closeWsChan chan string) func(*fiber.Ctx) error {
-	return websocket.New(func(c *websocket.Conn) {
-		go func() {
+	/* ------------------ Register ws connection channel ------------------ */
+	go func() {
+		for {
 			c := <-chatServer.registerConn
+			log.Println("Register connection")
 			chatServer.connections[c] = true
 			chatServer.connectionsByUid[c.Locals("uid").(primitive.ObjectID).Hex()] = c
-		}()
-		go func() {
+		}
+	}()
+	/* ------------------ Unregister ws connection channel ------------------ */
+	go func() {
+		for {
 			c := <-chatServer.unregisterConn
+			log.Println("Unregister connection")
 			delete(chatServer.connections, c)
 			delete(chatServer.connectionsByUid, c.Locals("uid").(primitive.ObjectID).Hex())
-		}()
-		go func() {
+		}
+	}()
+	/* ------------------ Register room connection channel ------------------ */
+	go func() {
+		for {
 			c := <-chatServer.registerRoomConn
+			log.Println("Register room connection")
 			conn := chatServer.connectionsByUid[c.uid]
 			foundRoom := false
 			for i := range chatServer.chatRooms {
 				if chatServer.chatRooms[i].roomId == c.id {
+					log.Println("Room connection added")
 					chatServer.chatRooms[i].connections[conn] = true
 					chatServer.chatRooms[i].connectionsByUid[c.uid] = conn
 					foundRoom = true
@@ -237,10 +270,15 @@ func HandleWsConn(chatServer *ChatServer, closeWsChan chan string) func(*fiber.C
 					connectionsByUid,
 					roomId,
 				})
+				log.Println("Room connection added")
 			}
-		}()
-		go func() {
+		}
+	}()
+	/* ------------------ Unregister room connection channel ------------------ */
+	go func() {
+		for {
 			c := <-chatServer.unregisterRoomConn
+			log.Println("Unregister room connection")
 			conn := chatServer.connectionsByUid[c.uid]
 			for i := range chatServer.chatRooms {
 				if chatServer.chatRooms[i].roomId == c.id {
@@ -249,8 +287,16 @@ func HandleWsConn(chatServer *ChatServer, closeWsChan chan string) func(*fiber.C
 					break
 				}
 			}
-		}()
+		}
+	}()
 
+	return chatServer, closeWsChan, deleteUserChan, nil
+}
+
+/* ------------------ WS HTTP API ROUTES ------------------ */
+
+func HandleWsConn(chatServer *ChatServer, closeWsChan chan string) func(*fiber.Ctx) error {
+	return websocket.New(func(c *websocket.Conn) {
 		chatServer.registerConn <- c
 		for {
 			var (

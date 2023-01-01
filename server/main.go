@@ -25,6 +25,9 @@ import (
 
 func main() {
 	dotEnvErr := godotenv.Load()
+	if dotEnvErr != nil {
+		log.Fatal("DOTENV ERROR : ", dotEnvErr)
+	}
 
 	app := fiber.New()
 
@@ -40,13 +43,7 @@ func main() {
 	rids := make(map[primitive.ObjectID]struct{})
 
 	var production bool = false
-	if dotEnvErr != nil {
-		log.Fatal("DOTENV ERROR : ", dotEnvErr)
-	}
-	log.Println("Loaded environment variables...")
-	if os.Getenv("PRODUCTION") == "true" {
-		production = true
-	}
+	production = os.Getenv("PRODUCTION") == "true"
 	app.Use(cors.New(cors.Config{
 		AllowCredentials: true,
 	}))
@@ -143,8 +140,8 @@ func main() {
 func watchForDeletesInUserCollection(collection *mongo.Collection, deleteUserChan chan string) {
 	userDeletePipeline := bson.D{
 		{
-			"$match", bson.D{
-				{"operationType", "delete"},
+			Key: "$match", Value: bson.D{
+				{Key: "operationType", Value: "delete"},
 			},
 		},
 	}

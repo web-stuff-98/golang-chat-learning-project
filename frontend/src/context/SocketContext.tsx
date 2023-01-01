@@ -1,4 +1,10 @@
-import { useState, useContext, createContext, useEffect } from "react";
+import {
+  useState,
+  useContext,
+  createContext,
+  useEffect,
+  useCallback,
+} from "react";
 import type { ReactNode } from "react";
 import { useAuth } from "./AuthContext";
 import { useRooms } from "./RoomsContext";
@@ -8,10 +14,12 @@ import { useUsers } from "./UsersContext";
   onmessage event_type
   (if there's no event_type that means its a chatroom message)
 
-  chatroom_update
-  pfp_update
-  chatroom_delete
-  user_delete
+  chatroom_update <- chatroom was updated
+  pfp_update      <- another users profile picture was updated
+  chatroom_delete <- chatroom was deleted
+  user_delete     <- user was deleted
+  chatroom_err    <- chatroom message error (cannot submit an empty comment for example)
+  
 */
 
 const SocketContext = createContext<{
@@ -27,30 +35,22 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
     useRooms();
   const [socket, setSocket] = useState<WebSocket>();
 
-  useEffect(() => {
-    if (!user) return;
-    //wss <- secure socket protocol.
-    const socket = new WebSocket(
-      process.env.NODE_ENV === "development"
-        ? "ws://localhost:8080/ws/conn"
-        : "wss://golang-chat-learning-project.herokuapp.com/ws/conn"
-    );
-    setSocket(socket);
-    socket.onmessage = (e) => {
+  const messageListener = useCallback(
+    (e: any) => {
       const data = JSON.parse(e.data);
       console.log(JSON.stringify(data));
       /* if no event_type field, then its a chatroom message
-      socket.onmessage func will be taken over by Room page component
-      when the user is in a room. */
+    socket.onmessage func will be taken over by Room page component
+    when the user is in a room. */
       if (!data.event_type) {
-        return; 
+        return;
       }
       if (data.event_type === "chatroom_update") {
         console.log("UPDATE");
         if (!ownRooms) {
           updateRoomData(data);
         } else {
-          if (data.author_id === user.ID) {
+          if (data.author_id === user?.ID) {
             updateRoomData(data);
           }
         }
@@ -65,10 +65,24 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
       if (data.event_type === "chatroom_delete") {
         deleteRoom(data.ID);
       }
-    };
+    },
+    [user]
+  );
 
+  useEffect(() => {
+    if (!user) return;
+    //wss <- secure socket protocol.
+    const socket = new WebSocket(
+      process.env.NODE_ENV === "development"
+        ? "ws://localhost:8080/ws/conn"
+        : "wss://golang-chat-learning-project.herokuapp.com/ws/conn"
+    );
+    setSocket(socket);
+    socket.addEventListener("message", messageListener);
     return () => {
+      socket.removeEventListener("message", messageListener);
       socket.close();
+      setSocket(undefined);
     };
   }, [user]);
 

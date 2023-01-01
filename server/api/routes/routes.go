@@ -97,8 +97,8 @@ func Setup(app *fiber.App, chatServer *controllers.ChatServer, closeWsChan chan 
 	}), helpers.AuthMiddleware, controllers.HandleLeaveRoom(chatServer))
 	app.Post("/api/room", mylimiter.SimpleLimiterMiddleware(ipBlockInfoMap, mylimiter.SimpleLimiterOpts{
 		Window:        time.Minute,
-		MaxReqs:       5,
-		BlockDuration: time.Second * 10,
+		MaxReqs:       3,
+		BlockDuration: time.Minute,
 		Message:       "You have been creating too many rooms. Wait one minute.",
 		RouteName:     "createroom",
 	}), helpers.AuthMiddleware, controllers.HandleCreateRoom(chatServer))

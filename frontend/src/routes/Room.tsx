@@ -1,5 +1,5 @@
 import classes from "../styles/pages/Room.module.scss";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import { useSocket } from "../context/SocketContext";
 import { joinRoom, leaveRoom } from "../services/rooms";
@@ -10,12 +10,13 @@ import { useUsers } from "../context/UsersContext";
 import Message from "../components/Message";
 import { IRoom, useRooms } from "../context/RoomsContext";
 import ProtectedRoute from "./ProtectedRoute";
+import { useModal } from "../context/ModalContext";
 
 export interface IMsg {
   content: string;
   uid: string;
   timestamp: Date;
-  ID: string;
+  ID?: string;
 }
 
 export default function Room() {
@@ -24,6 +25,7 @@ export default function Room() {
   const { user } = useAuth();
   const { getRoomData } = useRooms();
   const { cacheUserData, updateUserData } = useUsers();
+  const { openModal } = useModal();
   const navigate = useNavigate();
 
   const msgsBottomRef = useRef<HTMLSpanElement>(null);
@@ -73,37 +75,49 @@ export default function Room() {
     };
   }, [id]);
 
-  useEffect(() => {
-    if (!socket) return;
-    socket.onmessage = (e) => {
-      let data = JSON.parse(e.data);
-      console.log(JSON.stringify(data));
-      if (!data.event_type) {
-        //if no event_type, then its a normal room message, so don't ignore it
-        cacheUserData(data.uid);
-        setMessages((old) => [
-          ...old,
-          { ...data, timestamp: new Date().toISOString() },
-        ]);
-      } else {
-        if (data.event_type === "user_delete") {
-          const r = getRoomData(id as string);
-          setMessages((old) => [...old.filter((msg) => msg.uid !== data.ID)]);
-          if (r) {
-            if (r.author_id === data.ID) {
-              navigate("/room/list");
-            }
-          }
-        }
-        if (data.event_type === "chatroom_delete") {
-          if (data.ID === id) {
+  const messageListener = useCallback((e: any) => {
+    let data = JSON.parse(e.data);
+    console.log(JSON.stringify(data));
+    if (!data.event_type) {
+      //if no event_type, then its a normal room message from another user
+      cacheUserData(data.uid);
+      setMessages((old) => [
+        ...old,
+        { ...data, timestamp: new Date().toISOString() },
+      ]);
+    } else {
+      if (data.event_type === "user_delete") {
+        const r = getRoomData(id as string);
+        setMessages((old) => [...old.filter((msg) => msg.uid !== data.ID)]);
+        if (r) {
+          if (r.author_id === data.ID) {
             navigate("/room/list");
           }
         }
-        if (data.event_type === "pfp_update") {
-          updateUserData(data);
+      }
+      if (data.event_type === "chatroom_delete") {
+        if (data.ID === id) {
+          navigate("/room/list");
         }
       }
+      if (data.event_type === "pfp_update") {
+        updateUserData(data);
+      }
+      if (data.event_type === "chatroom_err") {
+        openModal("Message", {
+          msg: e.data.content,
+          err: true,
+          pen: false,
+        });
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!socket) return;
+    socket.addEventListener("message", messageListener);
+    return () => {
+      socket.removeEventListener("message", messageListener);
     };
   }, [socket]);
 
