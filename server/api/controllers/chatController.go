@@ -213,7 +213,7 @@ func NewServer() (*ChatServer, chan string, chan string, error) {
 							}},
 						}},
 					}
-					db.RoomCollection.UpdateOne(context.TODO(), bson.M{"_id": doc.ID}, pipeline)
+					db.RoomCollection.UpdateOne(context.TODO(), bson.M{"_id": doc.ID}, mongo.Pipeline{pipeline})
 				}
 				//delete users pfp
 				db.PfpCollection.DeleteOne(context.TODO(), bson.M{"_id": doc.ID})
