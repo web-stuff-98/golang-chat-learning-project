@@ -333,6 +333,14 @@ func HandleRefresh(closeWsChan chan string, production bool) fiber.Handler {
 			})
 		}
 
+		var pfp models.Pfp
+		pfperr := db.PfpCollection.FindOne(c.Context(), bson.M{"_id": user["_id"]}).Decode(&pfp)
+		var base64pfp string
+
+		if pfperr == nil {
+			base64pfp = "data:image/jpeg;base64," + base64.StdEncoding.EncodeToString(pfp.Binary.Data)
+		}
+
 		c.Cookie(&fiber.Cookie{
 			Name:     "session_token",
 			Value:    token,
@@ -341,9 +349,12 @@ func HandleRefresh(closeWsChan chan string, production bool) fiber.Handler {
 			Secure:   production,
 		})
 
+		c.Locals("uid", user["_id"].(primitive.ObjectID))
+
 		return c.JSON(fiber.Map{
-			"_id":   user["_id"],
-			"token": token,
+			"ID":        user["_id"],
+			"username":  user["username"],
+			"base64pfp": base64pfp,
 		})
 	}
 }

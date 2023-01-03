@@ -68,7 +68,7 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
         deleteRoom(data.ID);
       }
     },
-    [user]
+    [socket]
   );
 
   useEffect(() => {

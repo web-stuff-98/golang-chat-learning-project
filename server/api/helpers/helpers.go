@@ -22,13 +22,6 @@ import (
 /* ----------- HELPER/UTILITY FUNCTIONS ----------- */
 
 func AuthMiddleware(c *fiber.Ctx) error {
-	cookie := c.Cookies("session_token", "")
-	if cookie == "" {
-		c.Status(fiber.StatusUnauthorized)
-		return c.JSON(fiber.Map{
-			"message": "Unauthorized",
-		})
-	}
 	uid, err := DecodeTokenAndGetUID(c)
 	if err != nil {
 		c.Status(fiber.StatusUnauthorized)
@@ -80,7 +73,10 @@ func GenerateToken(c *fiber.Ctx, uid primitive.ObjectID, expiresAt time.Time, ke
 	return token, nil
 }
 func DecodeToken(c *fiber.Ctx) (*jwt.Token, error) {
-	cookie := c.Cookies("session_token")
+	cookie := c.Cookies("session_token", "")
+	if cookie == "" {
+		return nil, fmt.Errorf("No cookie")
+	}
 	token, err := jwt.ParseWithClaims(cookie, &jwt.StandardClaims{}, func(t *jwt.Token) (interface{}, error) {
 		return []byte(os.Getenv("SECRET")), nil
 	})

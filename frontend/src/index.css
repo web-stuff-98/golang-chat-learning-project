@@ -72,8 +72,8 @@ hr {
   /* Component & layout colours */
   --foreground: white;
   --background: #f0f1f3;
-  --nav: rgb(19, 19, 19);
-  --header: linear-gradient(to top, rgb(16, 16, 16) 0%, rgb(8,8,8) 100%);
+  --nav: rgb(14, 14, 14);
+  --header: linear-gradient(to top, rgb(14, 14, 14) 0%, rgb(8,8,8) 100%);
 
   /* Component & Text Colours */
   --text-color: black;
@@ -113,8 +113,6 @@ hr {
 
 .darkMode {
   background: #0d0d0d;
-
-  --nav: rgb(15, 15, 15);
 
   /* Component & layout colours */
   --foreground: rgb(14, 14, 14);

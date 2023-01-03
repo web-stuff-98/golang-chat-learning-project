@@ -58,42 +58,9 @@ type ChatRoom struct {
 	roomId           string
 }
 
-func HandleWsUpgrade(c *fiber.Ctx) error {
-	if websocket.IsWebSocketUpgrade(c) {
-		sessionId, err := helpers.DecodeTokenIssuer(c)
-		if err == nil {
-			user, err := helpers.GetUserFromSID(c, sessionId)
-			if err != nil {
-				c.Status(fiber.StatusUnauthorized)
-				return c.JSON(fiber.Map{
-					"message": "Unauthorized",
-				})
-			}
-			c.Locals("uid", user["_id"])
-		} else {
-			c.Status(fiber.StatusUnauthorized)
-			return c.JSON(fiber.Map{
-				"message": "Unauthorized",
-			})
-		}
-		socketId := uuid.New().String()
-		c.Locals("socketId", socketId)
-		helpers.AddSocketIdToSession(c, socketId)
-		return c.Next()
-	}
-	return fiber.ErrUpgradeRequired
-}
-
 type ChatRoomConnectionRegistration struct {
 	id  string
 	uid string
-}
-
-func HandleTestRateLimit(c *fiber.Ctx) error {
-	c.Status(fiber.StatusOK)
-	return c.JSON(fiber.Map{
-		"message": "OK",
-	})
 }
 
 type RoomIdMessageId struct {
@@ -101,9 +68,11 @@ type RoomIdMessageId struct {
 	MessageId primitive.ObjectID
 }
 
-func NewServer() (*ChatServer, chan string, chan string, chan RoomIdMessageId, error) {
+func NewServer() (*ChatServer, chan string, chan string, chan *websocket.Conn, chan RoomIdMessageId, error) {
 	//closeWsChan can be used to close websockets using the users id
 	closeWsChan := make(chan string)
+	//closeWsChanDirect can be used to close websockets using the actual websocket connection, removes the uid map value too
+	closeWsChanDirect := make(chan *websocket.Conn)
 	//deleteUser channel is used in changestream, when a user is deleted delete all their messages, rooms and send ws event to other users0
 	deleteUserChan := make(chan string)
 	//deleteMsg channel is used to delete messages from a room
@@ -170,6 +139,15 @@ func NewServer() (*ChatServer, chan string, chan string, chan RoomIdMessageId, e
 			conn := chatServer.connectionsByUid[uid]
 			delete(chatServer.connectionsByUid, uid)
 			delete(chatServer.connections, conn)
+		}
+	}()
+
+	/* ------------------ Close websocket channel using websocket channel...... for some reason ------------------ */
+	go func() {
+		for {
+			c := <-closeWsChanDirect
+			delete(chatServer.connectionsByUid, c.Locals("uid").(primitive.ObjectID).Hex())
+			delete(chatServer.connections, c)
 		}
 	}()
 
@@ -284,10 +262,15 @@ func NewServer() (*ChatServer, chan string, chan string, chan RoomIdMessageId, e
 	go func() {
 		for {
 			c := <-chatServer.registerRoomConn
-			conn := chatServer.connectionsByUid[c.uid]
+			conn, ok := chatServer.connectionsByUid[c.uid]
+			if !ok {
+				log.Println("Connection for user '%d' could not be found, this is bad!!!!! It is what is causing the nil pointer dereference / memory address error.", c.uid)
+				return
+			}
 			foundRoom := false
 			for i := range chatServer.chatRooms {
 				if chatServer.chatRooms[i].roomId == c.id {
+					// its going wrong here, because of above... conn is nil... causing the nil pointer dereference...
 					chatServer.chatRooms[i].connections[conn] = true
 					chatServer.chatRooms[i].connectionsByUid[c.uid] = conn
 					foundRoom = true
@@ -319,21 +302,50 @@ func NewServer() (*ChatServer, chan string, chan string, chan RoomIdMessageId, e
 				if chatServer.chatRooms[i].roomId == c.id {
 					delete(chatServer.chatRooms[i].connections, conn)
 					delete(chatServer.chatRooms[i].connectionsByUid, c.uid)
-					break
 				}
 			}
 		}
 	}()
 
-	return chatServer, closeWsChan, deleteUserChan, deleteMsgChan, nil
+	return chatServer, closeWsChan, deleteUserChan, closeWsChanDirect, deleteMsgChan, nil
 }
 
 /* ------------------ WS HTTP API ROUTES ------------------ */
 
-func HandleWsConn(chatServer *ChatServer, closeWsChan chan string) func(*fiber.Ctx) error {
+func HandleWsUpgrade(c *fiber.Ctx) error {
+	if websocket.IsWebSocketUpgrade(c) {
+		sessionId, err := helpers.DecodeTokenIssuer(c)
+		if err == nil {
+			user, err := helpers.GetUserFromSID(c, sessionId)
+			if err != nil {
+				c.Status(fiber.StatusUnauthorized)
+				return c.JSON(fiber.Map{
+					"message": "Unauthorized",
+				})
+			}
+			c.Locals("uid", user["_id"])
+		} else {
+			c.Status(fiber.StatusUnauthorized)
+			return c.JSON(fiber.Map{
+				"message": "Unauthorized",
+			})
+		}
+		socketId := uuid.New().String()
+		c.Locals("socketId", socketId)
+		helpers.AddSocketIdToSession(c, socketId)
+		return c.Next()
+	}
+	return fiber.ErrUpgradeRequired
+}
+
+func HandleWsConn(chatServer *ChatServer, closeWsChanDirect chan *websocket.Conn) func(*fiber.Ctx) error {
 	return websocket.New(func(c *websocket.Conn) {
 		chatServer.registerConn <- c
 		for {
+			_, ok := chatServer.connections[c]
+			if !ok {
+				chatServer.registerConn <- c
+			}
 			var Msg models.MessageEvent
 			if err := c.ReadJSON(&Msg); err != nil {
 				break
@@ -376,9 +388,7 @@ func HandleWsConn(chatServer *ChatServer, closeWsChan chan string) func(*fiber.C
 			}
 		}
 		defer func() {
-			if c.Locals("uid") != "" {
-				closeWsChan <- c.Locals("uid").(primitive.ObjectID).Hex()
-			}
+			closeWsChanDirect <- c
 		}()
 	})
 }

@@ -82,6 +82,14 @@ export default function Room() {
     if (!e.target?.files) return;
     if (!e.target.files[0]) return;
     const file = e.target.files[0];
+    if (file.size > 20 * 1024 * 1024) {
+      openModal("Message", {
+        msg: "You cannot select a file larger than 20mb",
+        err: true,
+        pen: false,
+      });
+      return;
+    }
     setFile(file);
     fileRef.current = file;
   };
@@ -100,58 +108,64 @@ export default function Room() {
       leaveRoom(id as string).catch((e) =>
         setResMsg({ msg: `${e}`, err: true, pen: false })
       );
+      if (socket) {
+        socket.removeEventListener("message", messageListener);
+      }
     };
   }, [id]);
 
-  const messageListener = useCallback((e: any) => {
-    let data = JSON.parse(e.data);
-    if (!data.event_type) {
-      //if no event_type, then its a normal room message from another user
-      cacheUserData(data.uid);
-      setMessages((old) => [
-        ...old,
-        { ...data, timestamp: new Date().toISOString() },
-      ]);
-    } else {
-      if (data.event_type === "user_delete") {
-        const r = getRoomData(id as string);
-        setMessages((old) => [...old.filter((msg) => msg.uid !== data.ID)]);
-        if (r) {
-          if (r.author_id === data.ID) {
+  const messageListener = useCallback(
+    (e: any) => {
+      let data = JSON.parse(e.data);
+      if (!data.event_type) {
+        //if no event_type, then its a normal room message from another user
+        cacheUserData(data.uid);
+        setMessages((old) => [
+          ...old,
+          { ...data, timestamp: new Date().toISOString() },
+        ]);
+      } else {
+        if (data.event_type === "user_delete") {
+          const r = getRoomData(id as string);
+          setMessages((old) => [...old.filter((msg) => msg.uid !== data.ID)]);
+          if (r) {
+            if (r.author_id === data.ID) {
+              navigate("/room/list");
+            }
+          }
+        }
+        if (data.event_type === "chatroom_delete") {
+          if (data.ID === id) {
             navigate("/room/list");
           }
         }
-      }
-      if (data.event_type === "chatroom_delete") {
-        if (data.ID === id) {
-          navigate("/room/list");
+        if (data.event_type === "pfp_update") {
+          updateUserData(data);
+        }
+        if (data.event_type === "chatroom_err") {
+          openModal("Message", {
+            msg: e.data.content,
+            err: true,
+            pen: false,
+          });
+        }
+        if (data.event_type === "attachment_complete") {
+          setMessages((old) => {
+            let newMsgs = old;
+            const i = old.findIndex((m) => m.ID === data.ID);
+            if (i === -1) return old;
+            newMsgs[i].attachment_pending = false;
+            newMsgs[i].attachment_type = data.attachment_type;
+            return [...newMsgs];
+          });
+        }
+        if (data.event_type === "message_delete") {
+          setMessages((old) => [...old.filter((m) => m.ID !== data.ID)]);
         }
       }
-      if (data.event_type === "pfp_update") {
-        updateUserData(data);
-      }
-      if (data.event_type === "chatroom_err") {
-        openModal("Message", {
-          msg: e.data.content,
-          err: true,
-          pen: false,
-        });
-      }
-      if (data.event_type === "attachment_complete") {
-        setMessages((old) => {
-          let newMsgs = old;
-          const i = old.findIndex((m) => m.ID === data.ID);
-          if (i === -1) return old;
-          newMsgs[i].attachment_pending = false;
-          newMsgs[i].attachment_type = data.attachment_type;
-          return [...newMsgs];
-        });
-      }
-      if (data.event_type === "message_delete") {
-        setMessages((old) => [...old.filter((m) => m.ID !== data.ID)]);
-      }
-    }
-  }, []);
+    },
+    [socket]
+  );
 
   useEffect(() => {
     if (!socket) return;

@@ -50,7 +50,7 @@ func main() {
 		AllowCredentials: true,
 	}))
 
-	chatServer, closeWsChan, deleteUserChan, deleteMsgChan, err := controllers.NewServer()
+	chatServer, closeWsChan, deleteUserChan, closeWsChanDirect, deleteMsgChan, err := controllers.NewServer()
 	if err != nil {
 		log.Fatal(fmt.Printf("Failed to setup chat server : %d", err))
 	}
@@ -59,7 +59,7 @@ func main() {
 	var seedErr error
 	go func() {
 		if !production {
-			uids, rids, seedErr = seed.GenerateSeed(5, 10)
+			uids, rids, seedErr = seed.GenerateSeed(5, 3)
 		} else {
 			uids, rids, seedErr = seed.GenerateSeed(50, 255)
 		}
@@ -69,7 +69,7 @@ func main() {
 	}()
 
 	/* -------- Set up routes with all the data needed sent down -------- */
-	routes.Setup(app, chatServer, closeWsChan, &uids, &rids, ipBlockInfoMap, production)
+	routes.Setup(app, chatServer, closeWsChan, closeWsChanDirect, &uids, &rids, ipBlockInfoMap, production)
 
 	/* -------- Every 2 minutes clean up sessions, ipBlockInfo, and delete old messages -------- */
 	cleanupTicker := time.NewTicker(2 * time.Minute)

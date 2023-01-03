@@ -46,6 +46,7 @@ export default function RoomList() {
   };
 
   useEffect(() => {
+    setAllRooms([]);
     getRoomList();
   }, [searchParams]);
 

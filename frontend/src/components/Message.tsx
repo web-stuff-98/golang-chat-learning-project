@@ -66,9 +66,12 @@ export default function Message({
         </div>
       )}
       {msg.attachment_pending && (
-        <div className={classes.pending}>
+        <div
+          className={classes.pending}
+          style={reverse ? { flexDirection: "row-reverse" } : {}}
+        >
           <ImSpinner8 className={classes.spinner} />
-          Attachment pending...
+          Attachment pending
         </div>
       )}
     </div>

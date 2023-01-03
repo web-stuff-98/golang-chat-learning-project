@@ -9,19 +9,13 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/websocket/v2"
 )
 
-func Setup(app *fiber.App, chatServer *controllers.ChatServer, closeWsChan chan string, protectedUids *map[primitive.ObjectID]struct{}, protectedRids *map[primitive.ObjectID]struct{}, ipBlockInfoMap map[string]map[string]mylimiter.BlockInfo, production bool) {
+func Setup(app *fiber.App, chatServer *controllers.ChatServer, closeWsChan chan string, closeWsChanDirect chan *websocket.Conn, protectedUids *map[primitive.ObjectID]struct{}, protectedRids *map[primitive.ObjectID]struct{}, ipBlockInfoMap map[string]map[string]mylimiter.BlockInfo, production bool) {
 	app.Post("/api/welcome", controllers.Welcome)
 	app.Post("/api/user/login", controllers.HandleLogin(production))
 	app.Post("/api/user/register", controllers.HandleRegister(production))
-
-	app.Post("/api/testratelimit", mylimiter.SimpleLimiterMiddleware(ipBlockInfoMap, mylimiter.SimpleLimiterOpts{
-		Window:        time.Second * 5,
-		MaxReqs:       10,
-		BlockDuration: time.Second * 5,
-		RouteName:     "testratelimit",
-	}), controllers.HandleTestRateLimit)
 
 	app.Post("/api/user/updatepfp", mylimiter.SimpleLimiterMiddleware(ipBlockInfoMap, mylimiter.SimpleLimiterOpts{
 		Window:        time.Second * 10,
@@ -45,7 +39,7 @@ func Setup(app *fiber.App, chatServer *controllers.ChatServer, closeWsChan chan 
 	}), helpers.AuthMiddleware, controllers.HandleGetUser)
 
 	app.Use("/ws", controllers.HandleWsUpgrade)
-	app.Get("/ws/conn", controllers.HandleWsConn(chatServer, closeWsChan))
+	app.Get("/ws/conn", controllers.HandleWsConn(chatServer, closeWsChanDirect))
 
 	app.Get("/api/room/:id", mylimiter.SimpleLimiterMiddleware(ipBlockInfoMap, mylimiter.SimpleLimiterOpts{
 		Window:        time.Second * 10,
