@@ -13,21 +13,27 @@ export default function Message({
   const { getUserData } = useUsers();
   return (
     <div
-      style={reverse ? { flexDirection: "row-reverse" } : {}}
+      style={reverse ? { alignItems: "flex-end" } : {}}
       className={classes.message}
     >
-      <User
-        uid={msg.uid}
-        date={new Date(msg.timestamp)}
-        reverse={reverse}
-        user={getUserData(msg.uid)}
-      />
       <div
-        style={reverse ? { textAlign: "right" } : {}}
-        className={classes.messageContent}
+        className={classes.userAndTextContent}
+        style={reverse ? { flexDirection: "row-reverse" } : {}}
       >
-        {msg.content}
+        <User
+          uid={msg.uid}
+          date={new Date(msg.timestamp)}
+          reverse={reverse}
+          user={getUserData(msg.uid)}
+        />
+        <div
+          style={reverse ? { textAlign: "right" } : {}}
+          className={classes.messageContent}
+        >
+          {msg.content}
+        </div>
       </div>
+      <div className={classes.imageAttachment}></div>
     </div>
   );
 }

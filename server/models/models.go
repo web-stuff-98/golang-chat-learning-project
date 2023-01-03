@@ -42,7 +42,15 @@ type RoomImage struct {
 	Binary primitive.Binary   `bson:"binary"`
 }
 
+type Attachment struct {
+	ID       primitive.ObjectID `bson:"_id,omitempty" json:"ID"` // ID should be the same as the message
+	MimeType string             `bson:"mime_type" json:"mime_type"`
+	Binary   primitive.Binary   `bson:"binary"`
+}
+
 //this is for the socket event when a user updates their profile
+//i dont know why i only gave this socket event a model, the other ones need models too
+//i should add them to here at some point to keep consistency
 type UserUpdateEvent struct {
 	UID       string
 	base64pfp string

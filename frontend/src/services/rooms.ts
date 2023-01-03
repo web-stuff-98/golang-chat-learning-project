@@ -1,3 +1,4 @@
+import { CancelToken } from "axios";
 import { makeRequest } from "./makeRequest";
 
 const getRooms = (getOwnRooms: boolean) =>
@@ -8,10 +9,11 @@ const getRooms = (getOwnRooms: boolean) =>
 const getRoom = (id: string) =>
   makeRequest(`/api/room/${id}`, { withCredentials: true });
 
-const getRoomImage = async (id: string) => {
+const getRoomImage = async (id: string, cancelToken: CancelToken) => {
   const data = await makeRequest(`/api/room/${id}/image`, {
     withCredentials: true,
     responseType: "arraybuffer",
+    cancelToken,
   });
   const blob = new Blob([data], { type: "image/jpeg" });
   return URL.createObjectURL(blob);

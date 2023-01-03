@@ -11,6 +11,9 @@ import Message from "../components/Message";
 import { IRoom, useRooms } from "../context/RoomsContext";
 import ProtectedRoute from "./ProtectedRoute";
 import { useModal } from "../context/ModalContext";
+import IconBtn from "../components/IconBtn";
+import { IoSend } from "react-icons/io5";
+import { AiFillFile } from "react-icons/ai";
 
 export interface IMsg {
   content: string;
@@ -123,6 +126,7 @@ export default function Room() {
 
   const renderRoomName = (room?: IRoom) => (room ? room.name : "");
 
+  const msgFormRef = useRef<HTMLFormElement>(null);
   return (
     <ProtectedRoute user={user}>
       <div className={classes.container}>
@@ -141,7 +145,12 @@ export default function Room() {
           )}
           <span aria-hidden={true} ref={msgsBottomRef} />
         </div>
-        <form onSubmit={handleSubmit}>
+        <form ref={msgFormRef} onSubmit={handleSubmit}>
+          <IconBtn
+            name="Select attachment"
+            ariaLabel="Select attachment"
+            Icon={AiFillFile}
+          />
           <input
             value={messageInput}
             onChange={(e: ChangeEvent<HTMLInputElement>) =>
@@ -149,7 +158,7 @@ export default function Room() {
             }
             type="text"
           />
-          <button type="submit">Send</button>
+          <IconBtn type="submit" name="Send" ariaLabel="Send" Icon={IoSend} />
         </form>
         <button
           className={classes.backButton}

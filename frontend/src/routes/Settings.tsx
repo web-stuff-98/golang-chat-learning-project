@@ -113,7 +113,17 @@ export default function Settings() {
               msg: "Are you sure you want to delete your account?",
               confirmationCallback: async () => {
                 try {
+                  openModal("Message", {
+                    msg: "Deleting account",
+                    err: false,
+                    pen: true,
+                  });
                   await deleteAccount();
+                  openModal("Message", {
+                    msg: "Account deleted",
+                    err: false,
+                    pen: true,
+                  });
                 } catch (e) {
                   openModal("Message", {
                     err: true,

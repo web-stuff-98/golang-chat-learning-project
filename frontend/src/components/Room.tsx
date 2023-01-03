@@ -8,6 +8,7 @@ import { AiFillEdit, AiFillDelete } from "react-icons/ai";
 import { IoEnter } from "react-icons/io5";
 import { useModal } from "../context/ModalContext";
 import { getRoomImage } from "../services/rooms";
+import axios, { CancelToken, CancelTokenSource } from "axios";
 
 export default function Room({ room }: { room: IRoom }) {
   const { user } = useAuth();
@@ -17,32 +18,44 @@ export default function Room({ room }: { room: IRoom }) {
 
   const [fetching, setFetching] = useState(false);
 
+  const imgCancelToken = useRef<CancelToken>();
+  const imgCancelSource = useRef<CancelTokenSource>();
+
   const containerRef = useRef(null);
 
   const observer = new IntersectionObserver(([entry]) => {
     if (!room) return;
     if (entry.isIntersecting) {
+      imgCancelSource.current = axios.CancelToken.source();
+      imgCancelToken.current = imgCancelSource.current.token;
       setFetching(true);
-      if (!fetching)
-        getRoomImage(room.ID)
+      if (!fetching) {
+        getRoomImage(room.ID, imgCancelToken.current)
           .then((url) => {
             updateRoomData({ ID: room.ID, img_url: url }, true);
           })
           .catch((e) => {
-            console.error(e);
+            if (!axios.isCancel(e)) console.error(e);
           })
           .finally(() => setFetching(false));
+      }
     } else {
       const r = getRoomData(room.ID);
       URL.revokeObjectURL(r?.img_url!);
       updateRoomData({ ID: room.ID, img_url: undefined });
       setFetching(false);
+      if (imgCancelToken.current) {
+        imgCancelSource.current?.cancel("Post no longer visible");
+      }
     }
   });
   useEffect(() => {
     observer.observe(containerRef.current!);
     return () => {
       observer.disconnect();
+      if (imgCancelToken.current) {
+        imgCancelSource.current?.cancel("Post no longer visible");
+      }
     };
   }, []);
 

@@ -89,6 +89,8 @@ func DecodeToken(c *fiber.Ctx) (*jwt.Token, error) {
 	}
 	return token, nil
 }
+
+// token issuer is the session id
 func DecodeTokenIssuer(c *fiber.Ctx) (string, error) {
 	token, err := DecodeToken(c)
 	if err != nil {
@@ -147,7 +149,7 @@ func AddSocketIdToSession(c *fiber.Ctx, socketId string) error {
 	if count == 0 {
 		return fmt.Errorf("Could not find session")
 	}
-	db.SessionCollection.UpdateOne(context.TODO(), bson.M{"_id": oid}, bson.D{{"$set", bson.D{{"socket_id", socketId}}}})
+	db.SessionCollection.UpdateOne(context.TODO(), bson.M{"_id": oid}, bson.D{{Key: "$set", Value: bson.D{{Key: "socket_id", Value: socketId}}}})
 	return nil
 }
 
@@ -170,7 +172,7 @@ func DownloadImageURL(inputURL string) io.ReadCloser {
 }
 func DownloadRandomImage(pfp bool) io.ReadCloser {
 	if !pfp {
-		return DownloadImageURL("https://picsum.photos/300/100")
+		return DownloadImageURL("https://picsum.photos/500/100")
 	} else {
 		return DownloadImageURL("https://100k-faces.glitch.me/random-image")
 	}

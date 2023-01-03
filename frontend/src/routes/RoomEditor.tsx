@@ -13,6 +13,7 @@ import ResMsg, { IResMsg } from "../components/ResMsg";
 import { useRooms } from "../context/RoomsContext";
 import ProtectedRoute from "./ProtectedRoute";
 import { useAuth } from "../context/AuthContext";
+import axios, { CancelToken, CancelTokenSource } from "axios";
 
 export default function RoomEditor() {
   const { id } = useParams();
@@ -30,15 +31,27 @@ export default function RoomEditor() {
     pen: false,
   });
 
+  const imgCancelSource = useRef<CancelTokenSource>();
+  const imgCancelToken = useRef<CancelToken>();
+
   useEffect(() => {
     if (!id) return;
     setNameInput(rooms.find((r) => r.ID === id)?.name!);
-    getRoomImage(id)
+    imgCancelSource.current = axios.CancelToken.source();
+    imgCancelToken.current = imgCancelSource.current?.token;
+    getRoomImage(id, imgCancelToken.current)
       .then((url) => setCoverImageURL(url))
       .catch((e) => {
-        setCoverImageURL("")
-        console.error(e);
+        if (!axios.isCancel(e)) {
+          setCoverImageURL("");
+          console.error(e);
+        }
       });
+    return () => {
+      if (imgCancelToken.current) {
+        imgCancelSource.current?.cancel("Image no longer visible");
+      }
+    };
   }, [id]);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {

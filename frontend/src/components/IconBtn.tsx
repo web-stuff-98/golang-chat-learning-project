@@ -10,6 +10,7 @@ const IconBtn = ({
   disabled,
   style,
   onClick = () => {},
+  type = "button",
   ...props
 }: {
   Icon: IconType;
@@ -19,6 +20,7 @@ const IconBtn = ({
   style?: CSSProperties;
   onClick?: Function;
   disabled?: boolean;
+  type?: string;
 }) => (
   <button
     {...props}

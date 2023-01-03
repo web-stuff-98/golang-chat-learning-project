@@ -339,6 +339,10 @@ func HandleWsConn(chatServer *ChatServer, closeWsChan chan string) func(*fiber.C
 							Uid:       c.Locals("uid").(primitive.ObjectID).Hex(),
 							Timestamp: primitive.NewDateTimeFromTime(time.Now()),
 							ID:        msgId,
+							/*has attachment and attachment pending will be updated by the client
+							calling the attachment upload api route.*/
+							HasAttachment:     false,
+							AttachmentPending: false,
 						}
 						db.RoomCollection.UpdateOne(context.TODO(), bson.M{"_id": oid}, bson.M{"$push": bson.M{"messages": msg}})
 					}
@@ -430,8 +434,11 @@ func HandleGetRoomImage(c *fiber.Ctx) error {
 		})
 	}
 
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
 	var img models.RoomImage
-	found := db.RoomImageCollection.FindOne(c.Context(), bson.M{"_id": oid})
+	found := db.RoomImageCollection.FindOne(ctx, bson.M{"_id": oid})
 	if found.Err() != nil {
 		if found.Err() != mongo.ErrNoDocuments {
 			c.Status(fiber.StatusInternalServerError)
@@ -597,7 +604,7 @@ func HandleUpdateRoom(protectedRids *map[primitive.ObjectID]struct{}, chatServer
 			}
 		}
 
-		db.RoomCollection.UpdateByID(c.Context(), oid, bson.D{{"$set", bson.D{{"name", body.Name}}}})
+		db.RoomCollection.UpdateByID(c.Context(), oid, bson.D{{Key: "$set", Value: bson.D{{Key: "name", Value: body.Name}}}})
 
 		for conn := range chatServer.connections {
 			if conn.Locals("uid").(primitive.ObjectID) != c.Locals("uid").(primitive.ObjectID) {
@@ -706,8 +713,8 @@ func HandleUploadRoomImage(chatServer *ChatServer) func(*fiber.Ctx) error {
 			})
 		}
 
-		img = resize.Resize(220, 0, img, resize.Lanczos2)
-		blurImg = resize.Resize(6, 1, img, resize.Lanczos2)
+		img = resize.Resize(400, 0, img, resize.Lanczos2)
+		blurImg = resize.Resize(6, 2, img, resize.Lanczos2)
 		buf := &bytes.Buffer{}
 		blurBuf := &bytes.Buffer{}
 		if err := jpeg.Encode(buf, img, nil); err != nil {

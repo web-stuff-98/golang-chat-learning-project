@@ -93,8 +93,8 @@ func generateRoom(i uint8, uid primitive.ObjectID) (rid primitive.ObjectID, err 
 	if decodeErr != nil {
 		return primitive.NilObjectID, decodeErr
 	}
-	img = resize.Resize(220, 0, img, resize.Lanczos2)
-	imgBlur = resize.Resize(6, 1, img, resize.Lanczos2)
+	img = resize.Resize(400, 0, img, resize.Lanczos2)
+	imgBlur = resize.Resize(6, 2, img, resize.Lanczos2)
 	buf := &bytes.Buffer{}
 	blurBuf := &bytes.Buffer{}
 	if err := jpeg.Encode(buf, img, nil); err != nil {
