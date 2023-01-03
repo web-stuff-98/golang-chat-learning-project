@@ -28,6 +28,7 @@ type Message struct {
 	HasAttachment     bool               `bson:"has_attachment" json:"has_attachment"`
 	AttachmentPending bool               `bson:"attachment_pending" json:"attachment_pending"`
 	AttachmentType    string             `bson:"attachment_type" json:"attachment_type"`
+	AttachmentError   bool               `bson:"attachment_error" json:"attachment_error"`
 }
 
 //socket message JSON from the client

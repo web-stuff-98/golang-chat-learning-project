@@ -23,6 +23,7 @@ export interface IMsg {
   has_attachment: boolean;
   attachment_pending: boolean;
   attachment_type?: string;
+  attachment_error?: boolean;
 }
 
 export default function Room() {

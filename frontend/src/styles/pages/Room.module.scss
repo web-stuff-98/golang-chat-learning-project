@@ -54,6 +54,22 @@
         }
       }
 
+      .error {
+        padding: var(--padding);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: var(--font-xs);
+        gap: var(--padding);
+        color: red;
+        filter: drop-shadow(0px 2px 2px rgba(0, 0, 0, 0.333));
+        svg {
+          height: var(--font-lg);
+          width: var(--font-lg);
+          fill: red;
+        }
+      }
+
       .pending {
         padding: var(--padding);
         display: flex;

@@ -2,14 +2,10 @@ import { useUsers } from "../context/UsersContext";
 import { IMsg } from "../routes/Room";
 import classes from "../styles/pages/Room.module.scss";
 import User from "./User";
-
-import { useState, useRef, useEffect } from "react";
-import type { CancelToken, CancelTokenSource } from "axios";
-import axios from "axios";
-import { getAttachmentImage } from "../services/rooms";
 import { baseURL } from "../services/makeRequest";
 import { ImSpinner8 } from "react-icons/im";
 import { AiOutlineDownload } from "react-icons/ai";
+import { BiError } from "react-icons/bi";
 
 export default function Message({
   msg,
@@ -62,6 +58,12 @@ export default function Message({
             </a>
           )}
         </>
+      )}
+      {msg.attachment_error && (
+        <div className={classes.error}>
+          <BiError />
+          Attachment error
+        </div>
       )}
       {msg.attachment_pending && (
         <div className={classes.pending}>

@@ -610,9 +610,57 @@ func HandleUpdateRoom(protectedRids *map[primitive.ObjectID]struct{}, chatServer
 
 const maxAttachmentSize = 20 * 1024 * 1024 //20mb
 
+func attachmentError(c *fiber.Ctx, msgId string, roomId string, chatServer *ChatServer) error {
+	// Emit attachment error message to clients in room
+	for r := range chatServer.chatRooms {
+		if chatServer.chatRooms[r].roomId == roomId {
+			for connUid := range chatServer.chatRooms[r].connectionsByUid {
+				chatServer.chatRooms[r].connectionsByUid[connUid].WriteJSON(fiber.Map{
+					"event_type": "attachment_error",
+					"ID":         msgId,
+				})
+			}
+		}
+	}
+	// Update msg in db
+	db.RoomCollection.UpdateByID(c.Context(), roomId, []bson.M{
+		{
+			"$set": bson.M{
+				"messages": bson.M{
+					"$map": bson.M{
+						"input": "$messages",
+						"as":    "message",
+						"in": bson.M{
+							"$cond": bson.M{
+								"if": bson.M{
+									"$eq": []interface{}{"$$message._id", msgId},
+								},
+								"then": bson.M{
+									"$mergeObjects": []interface{}{
+										"$$message",
+										bson.M{
+											"attachment_error": true,
+										},
+									},
+								},
+								"else": "$$message",
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+	c.Status(fiber.StatusInternalServerError)
+	return c.JSON(fiber.Map{
+		"message": "Internal error",
+	})
+}
+
 // Upload attachment for the users last message
 func HandleUploadAttachment(chatServer *ChatServer) func(*fiber.Ctx) error {
 	return func(c *fiber.Ctx) error {
+
 		file, err := c.FormFile("file")
 		if err != nil {
 			c.Status(fiber.StatusBadRequest)
@@ -678,10 +726,7 @@ func HandleUploadAttachment(chatServer *ChatServer) func(*fiber.Ctx) error {
 
 		src, err := file.Open()
 		if err != nil {
-			c.Status(fiber.StatusInternalServerError)
-			return c.JSON(fiber.Map{
-				"message": "Internal error",
-			})
+			attachmentError(c, matchingMsg.ID.Hex(), roomId.Hex(), chatServer)
 		}
 
 		foundAttach := db.AttachmentCollection.FindOne(c.Context(), bson.M{"_id": matchingMsg.ID})
@@ -716,19 +761,13 @@ func HandleUploadAttachment(chatServer *ChatServer) func(*fiber.Ctx) error {
 				img, decodeErr = png.Decode(src)
 			}
 			if decodeErr != nil {
-				c.Status(fiber.StatusInternalServerError)
-				return c.JSON(fiber.Map{
-					"message": "Internal error",
-				})
+				attachmentError(c, matchingMsg.ID.Hex(), roomId.Hex(), chatServer)
 			}
 			buf := &bytes.Buffer{}
 			width := math.Min(float64(img.Bounds().Dx()), 350)
 			img = resize.Resize(uint(width), 0, img, resize.Lanczos2)
 			if err := jpeg.Encode(buf, img, nil); err != nil {
-				c.Status(fiber.StatusInternalServerError)
-				return c.JSON(fiber.Map{
-					"message": "Internal error",
-				})
+				attachmentError(c, matchingMsg.ID.Hex(), roomId.Hex(), chatServer)
 			}
 			db.AttachmentCollection.InsertOne(c.Context(), models.Attachment{
 				ID:       matchingMsg.ID,
@@ -740,10 +779,7 @@ func HandleUploadAttachment(chatServer *ChatServer) func(*fiber.Ctx) error {
 			/* ----- Save file to db as misc downloadable file (no video player) ----- */
 			data, err := ioutil.ReadAll(src)
 			if err != nil {
-				c.Status(fiber.StatusInternalServerError)
-				return c.JSON(fiber.Map{
-					"message": "Internal error",
-				})
+				attachmentError(c, matchingMsg.ID.Hex(), roomId.Hex(), chatServer)
 			}
 			db.AttachmentCollection.InsertOne(c.Context(), models.Attachment{
 				ID:       matchingMsg.ID,
@@ -785,7 +821,7 @@ func HandleUploadAttachment(chatServer *ChatServer) func(*fiber.Ctx) error {
 			},
 		})
 
-		// Emit attachment complete message to other connected clients in room
+		// Emit attachment complete message to clients in room
 		for r := range chatServer.chatRooms {
 			if chatServer.chatRooms[r].roomId == roomId.Hex() {
 				for connUid := range chatServer.chatRooms[r].connectionsByUid {
