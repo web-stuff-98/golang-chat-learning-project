@@ -21,10 +21,18 @@ type Session struct {
 }
 
 type Message struct {
-	ID        primitive.ObjectID `bson:"_id,omitempty" json:"ID"` // omitempty to protect against zeroed _id insertion
-	Content   string             `bson:"content,maxlength=200" json:"content"`
-	Uid       string             `bson:"uid" json:"uid"`
-	Timestamp primitive.DateTime `bson:"timestamp" json:"timestamp"`
+	ID                primitive.ObjectID `bson:"_id,omitempty" json:"ID"` // omitempty to protect against zeroed _id insertion
+	Content           string             `bson:"content,maxlength=200" json:"content"`
+	Uid               string             `bson:"uid" json:"uid"`
+	Timestamp         primitive.DateTime `bson:"timestamp" json:"timestamp"`
+	HasAttachment     bool               `bson:"has_attachment" json:"has_attachment"`
+	AttachmentPending bool               `bson:"attachment_pending" json:"attachment_pending"`
+}
+
+//socket message JSON from the client
+type MessageEvent struct {
+	Content       string `json:"content"`
+	HasAttachment bool   `json:"has_attachment"`
 }
 
 type Room struct {

@@ -299,23 +299,14 @@ func HandleWsConn(chatServer *ChatServer, closeWsChan chan string) func(*fiber.C
 	return websocket.New(func(c *websocket.Conn) {
 		chatServer.registerConn <- c
 		for {
-			var (
-				_   int //unused "mt / message type" parameter... dont get the point of this. doesn't seem to be any way to change it
-				msg []byte
-				err error
-			)
-			if _, msg, err = c.ReadMessage(); err != nil {
-				/*if !websocket.IsCloseError(err) {
-					log.Println("ReadErr: ", err)
-				} else {
-					log.Println("Websocket connection closed")
-				}*/
+			var Msg models.MessageEvent
+			if err := c.ReadJSON(&Msg); err != nil {
 				break
 			}
 			msgId := primitive.NewObjectID()
 			chatServer.inbound <- InboundMessage{
 				WsConn:    c,
-				Content:   string(msg),
+				Content:   Msg.Content,
 				SenderUid: c.Locals("uid").(primitive.ObjectID).Hex(),
 				ID:        msgId,
 			}
@@ -335,14 +326,12 @@ func HandleWsConn(chatServer *ChatServer, closeWsChan chan string) func(*fiber.C
 							found.Decode(&room)
 						}
 						msg := models.Message{
-							Content:   string(msg),
-							Uid:       c.Locals("uid").(primitive.ObjectID).Hex(),
-							Timestamp: primitive.NewDateTimeFromTime(time.Now()),
-							ID:        msgId,
-							/*has attachment and attachment pending will be updated by the client
-							calling the attachment upload api route.*/
-							HasAttachment:     false,
-							AttachmentPending: false,
+							Content:           Msg.Content,
+							Uid:               c.Locals("uid").(primitive.ObjectID).Hex(),
+							Timestamp:         primitive.NewDateTimeFromTime(time.Now()),
+							ID:                msgId,
+							HasAttachment:     Msg.HasAttachment,
+							AttachmentPending: Msg.HasAttachment,
 						}
 						db.RoomCollection.UpdateOne(context.TODO(), bson.M{"_id": oid}, bson.M{"$push": bson.M{"messages": msg}})
 					}

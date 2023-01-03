@@ -48,7 +48,9 @@ export default function Room() {
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    socket?.send(messageInput);
+    socket?.send(
+      JSON.stringify({ content: messageInput, has_attachment: false })
+    );
     setMessageInput("");
     setMessages((p) => [
       ...p,
@@ -80,7 +82,6 @@ export default function Room() {
 
   const messageListener = useCallback((e: any) => {
     let data = JSON.parse(e.data);
-    console.log(JSON.stringify(data));
     if (!data.event_type) {
       //if no event_type, then its a normal room message from another user
       cacheUserData(data.uid);
