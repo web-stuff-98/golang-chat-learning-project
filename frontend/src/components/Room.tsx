@@ -28,8 +28,9 @@ export default function Room({ room }: { room: IRoom }) {
     if (entry.isIntersecting) {
       imgCancelSource.current = axios.CancelToken.source();
       imgCancelToken.current = imgCancelSource.current.token;
-      setFetching(true);
-      if (!fetching) {
+      const r = getRoomData(room.ID);
+      if (!fetching && !r?.img_url) {
+        setFetching(true);
         getRoomImage(room.ID, imgCancelToken.current)
           .then((url) => {
             updateRoomData({ ID: room.ID, img_url: url }, true);
@@ -40,7 +41,6 @@ export default function Room({ room }: { room: IRoom }) {
           .finally(() => setFetching(false));
       }
     } else {
-      const r = getRoomData(room.ID);
       setFetching(false);
       if (imgCancelToken.current) {
         imgCancelSource.current?.cancel("Post no longer visible");
