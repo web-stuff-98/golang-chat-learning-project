@@ -2,6 +2,8 @@
 
 ## This is my first golang project, its a chat app that uses MongoDB and Websockets.
 
+## It is also mostly broken - the server crashes when you refresh and sometimes messages are not received.........
+
 Features :
 
 - Refresh tokens
@@ -13,9 +15,6 @@ Features :
 - Automatic account deletion
 - Automatic clean up via changestream
 
-It doesn't work very well, for some reason sometimes messages wont be received after leaving
-a room and joining another one. Some API routes will time out or just crash the server, and
-logging out creates a new cookie with the same name instead of removing the old one.
 https://golang-chat-learning-project.herokuapp.com
 
 
