@@ -7,7 +7,9 @@ import (
 	"image"
 	"image/jpeg"
 	"image/png"
+	"io/ioutil"
 	"log"
+	"math"
 	"strings"
 	"time"
 
@@ -27,10 +29,12 @@ import (
 )
 
 type InboundMessage struct {
-	ID        primitive.ObjectID `bson:"_id" json:"ID"`
-	Content   string             `json:"content"`
-	SenderUid string             `json:"uid"`
-	WsConn    *websocket.Conn    `json:"-"`
+	ID                primitive.ObjectID `bson:"_id" json:"ID"`
+	Content           string             `json:"content"`
+	SenderUid         string             `json:"uid"`
+	WsConn            *websocket.Conn    `json:"-"`
+	HasAttachment     bool               `json:"has_attachment"`
+	AttachmentPending bool               `json:"attachment_pending"`
 }
 
 type ChatServer struct {
@@ -305,10 +309,12 @@ func HandleWsConn(chatServer *ChatServer, closeWsChan chan string) func(*fiber.C
 			}
 			msgId := primitive.NewObjectID()
 			chatServer.inbound <- InboundMessage{
-				WsConn:    c,
-				Content:   Msg.Content,
-				SenderUid: c.Locals("uid").(primitive.ObjectID).Hex(),
-				ID:        msgId,
+				WsConn:            c,
+				Content:           Msg.Content,
+				SenderUid:         c.Locals("uid").(primitive.ObjectID).Hex(),
+				ID:                msgId,
+				HasAttachment:     Msg.HasAttachment,
+				AttachmentPending: Msg.HasAttachment,
 			}
 			// Find room and write message to db
 			for i := range chatServer.chatRooms {
@@ -607,6 +613,168 @@ func HandleUpdateRoom(protectedRids *map[primitive.ObjectID]struct{}, chatServer
 		c.Status(fiber.StatusOK)
 		return c.JSON(fiber.Map{
 			"message": "Room name updated",
+		})
+	}
+}
+
+const maxAttachmentSize = 20 * 1024 * 1024 //20mb
+
+// Upload attachment for the users last message
+func HandleUploadAttachment(chatServer *ChatServer) func(*fiber.Ctx) error {
+	return func(c *fiber.Ctx) error {
+		file, err := c.FormFile("file")
+		if err != nil {
+			c.Status(fiber.StatusBadRequest)
+			return c.JSON(fiber.Map{
+				"message": err,
+			})
+		}
+
+		if file.Size > maxAttachmentSize {
+			c.Status(fiber.StatusBadRequest)
+			return c.JSON(fiber.Map{
+				"message": "File too large. Max 20mb.",
+			})
+		}
+
+		if c.Params("roomId") == "" {
+			c.Status(fiber.StatusBadRequest)
+			return c.JSON(fiber.Map{
+				"message": "Bad request",
+			})
+		}
+
+		roomId, err := primitive.ObjectIDFromHex(c.Params("roomId"))
+		if err != nil {
+			c.Status(fiber.StatusBadRequest)
+			return c.JSON(fiber.Map{
+				"message": "Invalid room ID",
+			})
+		}
+
+		var room models.Room
+		foundRoom := db.RoomCollection.FindOne(c.Context(), bson.M{"_id": roomId})
+		if foundRoom.Err() != nil {
+			if foundRoom.Err() == mongo.ErrNoDocuments {
+				c.Status(fiber.StatusNotFound)
+				return c.JSON(fiber.Map{
+					"message": "Room not found",
+				})
+			} else {
+				c.Status(fiber.StatusInternalServerError)
+				return c.JSON(fiber.Map{
+					"message": "Internal error",
+				})
+			}
+		}
+		foundRoom.Decode(&room)
+
+		// Iterate through all the rooms messages to find the users most recent message
+		var matchingMsg models.Message
+		var foundMsg bool
+		for _, msg := range room.Messages {
+			if msg.Uid == c.Locals("uid").(primitive.ObjectID).Hex() {
+				foundMsg = true
+				matchingMsg = msg
+			}
+		}
+		if !foundMsg {
+			c.Status(fiber.StatusNotFound)
+			return c.JSON(fiber.Map{
+				"message": "Message not found",
+			})
+		}
+
+		src, err := file.Open()
+		if err != nil {
+			c.Status(fiber.StatusInternalServerError)
+			return c.JSON(fiber.Map{
+				"message": "Internal error",
+			})
+		}
+
+		foundAttach := db.AttachmentCollection.FindOne(c.Context(), bson.M{"_id": matchingMsg.ID})
+		if foundAttach.Err() == nil {
+			c.Status(fiber.StatusBadRequest)
+			return c.JSON(fiber.Map{
+				"message": "Attachment already exists",
+			})
+		}
+
+		var isJPEG, isPNG bool
+		isJPEG = file.Header.Get("Content-Type") == "image/jpeg"
+		isPNG = file.Header.Get("Content-Type") == "image/png"
+		if isJPEG || isPNG {
+			/* ----- Save file to db as resized image ----- */
+			var img image.Image
+			var decodeErr error
+			if isJPEG {
+				img, decodeErr = jpeg.Decode(src)
+			}
+			if isPNG {
+				img, decodeErr = png.Decode(src)
+			}
+			if decodeErr != nil {
+				c.Status(fiber.StatusInternalServerError)
+				return c.JSON(fiber.Map{
+					"message": "Internal error",
+				})
+			}
+			buf := &bytes.Buffer{}
+			width := math.Min(float64(img.Bounds().Dx()), 350)
+			img = resize.Resize(uint(width), 0, img, resize.Lanczos2)
+			db.AttachmentCollection.InsertOne(c.Context(), models.Attachment{
+				ID:       matchingMsg.ID,
+				MimeType: file.Header.Get("Content-Type"),
+				Binary:   primitive.Binary{Data: buf.Bytes()},
+			})
+		} else {
+			/* ----- Save file to db as misc downloadable file (no video player) ----- */
+			data, err := ioutil.ReadAll(src)
+			if err != nil {
+				c.Status(fiber.StatusInternalServerError)
+				return c.JSON(fiber.Map{
+					"message": "Internal error",
+				})
+			}
+			db.AttachmentCollection.InsertOne(c.Context(), models.Attachment{
+				ID:       matchingMsg.ID,
+				MimeType: file.Header.Get("Content-Type"),
+				Binary:   primitive.Binary{Data: data},
+			})
+		}
+		src.Close()
+
+		/*I used chatgpt to help me figure this out... it got stuff wrong probably because
+		its training data uses older versions of mongodb... had to correct it */
+		arrayFilters := options.ArrayFilters{
+			Filters: []interface{}{
+				bson.M{"_id": matchingMsg.ID}, // remember try changing _id to i._id if it doesnt work
+			},
+		}
+		db.RoomCollection.UpdateByID(c.Context(), roomId, []bson.M{
+			{
+				"$set": bson.M{
+					"messages.$[i].attachment_pending": false,
+				},
+			},
+		}, options.Update().SetArrayFilters(arrayFilters))
+
+		// Emit attachment complete message to all connected clients in room
+		for r := range chatServer.chatRooms {
+			if chatServer.chatRooms[r].roomId == roomId.Hex() {
+				for conn := range chatServer.chatRooms[r].connections {
+					conn.WriteJSON(fiber.Map{
+						"event_type": "attachment_complete",
+						"ID":         matchingMsg.ID.Hex(),
+					})
+				}
+			}
+		}
+
+		c.Status(fiber.StatusCreated)
+		return c.JSON(fiber.Map{
+			"message": "Attachment created",
 		})
 	}
 }

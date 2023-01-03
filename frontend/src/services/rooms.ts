@@ -26,6 +26,16 @@ const createRoom = (data: { name: string }) =>
     data,
   });
 
+const uploadAttachment = (roomId: string, file: File) => {
+  const data = new FormData();
+  data.append("file", file);
+  return makeRequest(`/api/room/${roomId}/attachment`, {
+    method: "POST",
+    withCredentials: true,
+    data,
+  });
+};
+
 const updateRoom = (id: string, data: { name: string }) =>
   makeRequest(`/api/room/${id}`, {
     method: "PATCH",
@@ -64,4 +74,5 @@ export {
   leaveRoom,
   uploadRoomImage,
   getRoomImage,
+  uploadAttachment,
 };

@@ -19,6 +19,7 @@ var PfpCollection *mongo.Collection
 var SessionCollection *mongo.Collection
 var RoomCollection *mongo.Collection
 var RoomImageCollection *mongo.Collection
+var AttachmentCollection *mongo.Collection
 
 func Connect() {
 	log.Println("Connecting to MongoDB...")
@@ -44,4 +45,5 @@ func Connect() {
 	SessionCollection = DB.Collection("sessions")
 	RoomCollection = DB.Collection("rooms")
 	RoomImageCollection = DB.Collection("roompics")
+	AttachmentCollection = DB.Collection("attachments")
 }

@@ -14,11 +14,14 @@ import { useUsers } from "./UsersContext";
   onmessage event_type
   (if there's no event_type that means its a chatroom message)
 
-  chatroom_update <- chatroom was updated
-  pfp_update      <- another users profile picture was updated
-  chatroom_delete <- chatroom was deleted
-  user_delete     <- user was deleted
-  chatroom_err    <- chatroom message error (cannot submit an empty comment for example)
+  chatroom_update     <- chatroom was updated
+  pfp_update          <- another users profile picture was updated
+  chatroom_delete     <- chatroom was deleted
+  user_delete         <- user was deleted
+  chatroom_err        <- chatroom message error (cannot submit an empty comment for example)
+  attachment_progress <- attachment progress event {ID,progress} progress 0 - 1
+  attachment_complete <- attachment complete {ID}
+  attachment_error    <- attachment error {ID}
 */
 
 const SocketContext = createContext<{

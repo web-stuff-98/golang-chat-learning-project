@@ -2,7 +2,7 @@ import classes from "../styles/pages/Room.module.scss";
 import { useEffect, useState, useRef, useCallback } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import { useSocket } from "../context/SocketContext";
-import { joinRoom, leaveRoom } from "../services/rooms";
+import { joinRoom, leaveRoom, uploadAttachment } from "../services/rooms";
 import { useNavigate, useParams } from "react-router-dom";
 import ResMsg, { IResMsg } from "../components/ResMsg";
 import { useAuth } from "../context/AuthContext";
@@ -20,6 +20,9 @@ export interface IMsg {
   uid: string;
   timestamp: Date;
   ID?: string;
+  has_attachment: boolean;
+  attachment_pending: boolean;
+  attachment_progress?: number; // 0 - 1
 }
 
 export default function Room() {
@@ -31,9 +34,12 @@ export default function Room() {
   const { openModal } = useModal();
   const navigate = useNavigate();
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const msgsBottomRef = useRef<HTMLSpanElement>(null);
   const [joined, setJoined] = useState(false);
   const [messageInput, setMessageInput] = useState("");
+  const [file, setFile] = useState<File>();
+  const fileRef = useRef<File>();
   const [messages, setMessages] = useState<IMsg[]>([]);
   const [resMsg, setResMsg] = useState<IResMsg>({
     msg: "",
@@ -49,7 +55,10 @@ export default function Room() {
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     socket?.send(
-      JSON.stringify({ content: messageInput, has_attachment: false })
+      JSON.stringify({
+        content: messageInput,
+        has_attachment: fileRef.current ? true : false,
+      })
     );
     setMessageInput("");
     setMessages((p) => [
@@ -59,8 +68,22 @@ export default function Room() {
         timestamp: new Date(),
         uid: user?.ID!,
         ID: `${Math.random()}${Math.random()}`,
+        has_attachment: file ? true : false,
+        attachment_pending: file ? true : false,
+        attachment_progress: file ? 0 : undefined,
       },
     ]);
+    if (fileRef.current) {
+      await uploadAttachment(id as string, fileRef.current);
+    }
+  };
+
+  const handleFileInput = (e: ChangeEvent<HTMLInputElement>) => {
+    if (!e.target?.files) return;
+    if (!e.target.files[0]) return;
+    const file = e.target.files[0];
+    setFile(file);
+    fileRef.current = file;
   };
 
   useEffect(() => {
@@ -147,10 +170,17 @@ export default function Room() {
           <span aria-hidden={true} ref={msgsBottomRef} />
         </div>
         <form ref={msgFormRef} onSubmit={handleSubmit}>
+          <input
+            onChange={handleFileInput}
+            type="file"
+            style={{ display: "none" }}
+            ref={fileInputRef}
+          />
           <IconBtn
             name="Select attachment"
             ariaLabel="Select attachment"
             Icon={AiFillFile}
+            onClick={() => fileInputRef.current?.click()}
           />
           <input
             value={messageInput}
