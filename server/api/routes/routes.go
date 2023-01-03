@@ -83,6 +83,18 @@ func Setup(app *fiber.App, chatServer *controllers.ChatServer, closeWsChan chan 
 		BlockDuration: time.Minute,
 		RouteName:     "attachment",
 	}), helpers.AuthMiddleware, controllers.HandleUploadAttachment(chatServer))
+	app.Get("/api/attachment/image/:id", mylimiter.SimpleLimiterMiddleware(ipBlockInfoMap, mylimiter.SimpleLimiterOpts{
+		Window:        time.Second * 10,
+		MaxReqs:       5,
+		BlockDuration: time.Minute,
+		RouteName:     "getattachment",
+	}), controllers.HandleGetAttachmentAsImage)
+	app.Get("/api/attachment/download/:id", mylimiter.SimpleLimiterMiddleware(ipBlockInfoMap, mylimiter.SimpleLimiterOpts{
+		Window:        time.Second * 10,
+		MaxReqs:       5,
+		BlockDuration: time.Minute,
+		RouteName:     "getattachment",
+	}), controllers.HandleDownloadAttachment)
 	app.Post("/api/room/:id/join", mylimiter.SimpleLimiterMiddleware(ipBlockInfoMap, mylimiter.SimpleLimiterOpts{
 		Window:        time.Second * 10,
 		MaxReqs:       10,

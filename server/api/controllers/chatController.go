@@ -121,7 +121,6 @@ func NewServer() (*ChatServer, chan string, chan string, error) {
 	go func() {
 		for {
 			msg := <-chatServer.inbound
-			log.Println("Inbound message")
 			if msg.Content == "" {
 				msg.WsConn.WriteJSON(fiber.Map{
 					"event_type": "chatroom_err",
@@ -140,7 +139,7 @@ func NewServer() (*ChatServer, chan string, chan string, error) {
 				conn := chatServer.chatRooms[i].connectionsByUid[msg.SenderUid]
 				if conn != nil {
 					for connI := range chatServer.chatRooms[i].connections {
-						if conn != connI && connI != nil {
+						if connI != nil {
 							defer func() {
 								if r := recover(); r != nil {
 									log.Println("Recovered from nil pointer dereference: ", r)
@@ -149,8 +148,6 @@ func NewServer() (*ChatServer, chan string, chan string, error) {
 							err := connI.WriteJSON(msg)
 							if err != nil {
 								log.Println(err)
-							} else {
-								log.Println("Wrote inbound message to connection")
 							}
 						}
 					}
@@ -231,7 +228,6 @@ func NewServer() (*ChatServer, chan string, chan string, error) {
 	go func() {
 		for {
 			c := <-chatServer.registerConn
-			log.Println("Register connection")
 			chatServer.connections[c] = true
 			chatServer.connectionsByUid[c.Locals("uid").(primitive.ObjectID).Hex()] = c
 		}
@@ -240,7 +236,6 @@ func NewServer() (*ChatServer, chan string, chan string, error) {
 	go func() {
 		for {
 			c := <-chatServer.unregisterConn
-			log.Println("Unregister connection")
 			delete(chatServer.connections, c)
 			delete(chatServer.connectionsByUid, c.Locals("uid").(primitive.ObjectID).Hex())
 		}
@@ -249,12 +244,10 @@ func NewServer() (*ChatServer, chan string, chan string, error) {
 	go func() {
 		for {
 			c := <-chatServer.registerRoomConn
-			log.Println("Register room connection")
 			conn := chatServer.connectionsByUid[c.uid]
 			foundRoom := false
 			for i := range chatServer.chatRooms {
 				if chatServer.chatRooms[i].roomId == c.id {
-					log.Println("Room connection added")
 					chatServer.chatRooms[i].connections[conn] = true
 					chatServer.chatRooms[i].connectionsByUid[c.uid] = conn
 					foundRoom = true
@@ -274,7 +267,6 @@ func NewServer() (*ChatServer, chan string, chan string, error) {
 					connectionsByUid,
 					roomId,
 				})
-				log.Println("Room connection added")
 			}
 		}
 	}()
@@ -282,7 +274,6 @@ func NewServer() (*ChatServer, chan string, chan string, error) {
 	go func() {
 		for {
 			c := <-chatServer.unregisterRoomConn
-			log.Println("Unregister room connection")
 			conn := chatServer.connectionsByUid[c.uid]
 			for i := range chatServer.chatRooms {
 				if chatServer.chatRooms[i].roomId == c.id {
@@ -700,10 +691,20 @@ func HandleUploadAttachment(chatServer *ChatServer) func(*fiber.Ctx) error {
 				"message": "Attachment already exists",
 			})
 		}
-
 		var isJPEG, isPNG bool
-		isJPEG = file.Header.Get("Content-Type") == "image/jpeg"
-		isPNG = file.Header.Get("Content-Type") == "image/png"
+		isJPEG = false
+		isPNG = false
+		if file.Header.Get("Content-Type") == "image/jpeg" {
+			isJPEG = true
+		}
+		if file.Header.Get("Content-Type") == "image/png" {
+			isPNG = true
+		}
+		attachment_type := file.Header.Get("Content-Type")
+		if isJPEG || isPNG {
+			//make it image/jpeg because even if the original file was a png it gets converted to jpeg
+			attachment_type = "image/jpeg"
+		}
 		if isJPEG || isPNG {
 			/* ----- Save file to db as resized image ----- */
 			var img image.Image
@@ -731,10 +732,11 @@ func HandleUploadAttachment(chatServer *ChatServer) func(*fiber.Ctx) error {
 			}
 			db.AttachmentCollection.InsertOne(c.Context(), models.Attachment{
 				ID:       matchingMsg.ID,
-				MimeType: file.Header.Get("Content-Type"),
 				Binary:   primitive.Binary{Data: buf.Bytes()},
+				MimeType: attachment_type,
 			})
-		} else {
+		}
+		if !isJPEG && !isPNG {
 			/* ----- Save file to db as misc downloadable file (no video player) ----- */
 			data, err := ioutil.ReadAll(src)
 			if err != nil {
@@ -745,8 +747,8 @@ func HandleUploadAttachment(chatServer *ChatServer) func(*fiber.Ctx) error {
 			}
 			db.AttachmentCollection.InsertOne(c.Context(), models.Attachment{
 				ID:       matchingMsg.ID,
-				MimeType: file.Header.Get("Content-Type"),
 				Binary:   primitive.Binary{Data: data},
+				MimeType: attachment_type,
 			})
 		}
 		src.Close()
@@ -770,6 +772,7 @@ func HandleUploadAttachment(chatServer *ChatServer) func(*fiber.Ctx) error {
 											bson.M{
 												"has_attachment":     true,
 												"attachment_pending": false,
+												"attachment_type":    attachment_type,
 											},
 										},
 									},
@@ -786,12 +789,11 @@ func HandleUploadAttachment(chatServer *ChatServer) func(*fiber.Ctx) error {
 		for r := range chatServer.chatRooms {
 			if chatServer.chatRooms[r].roomId == roomId.Hex() {
 				for connUid := range chatServer.chatRooms[r].connectionsByUid {
-					if connUid != c.Locals("uid").(primitive.ObjectID).Hex() {
-						chatServer.chatRooms[r].connectionsByUid[connUid].WriteJSON(fiber.Map{
-							"event_type": "attachment_complete",
-							"ID":         matchingMsg.ID.Hex(),
-						})
-					}
+					chatServer.chatRooms[r].connectionsByUid[connUid].WriteJSON(fiber.Map{
+						"event_type":      "attachment_complete",
+						"attachment_type": attachment_type,
+						"ID":              matchingMsg.ID.Hex(),
+					})
 				}
 			}
 		}
@@ -801,6 +803,81 @@ func HandleUploadAttachment(chatServer *ChatServer) func(*fiber.Ctx) error {
 			"message": "Attachment created",
 		})
 	}
+}
+
+func HandleGetAttachmentAsImage(c *fiber.Ctx) error {
+	if c.Params("id") == "" {
+		c.Status(fiber.StatusBadRequest)
+		return c.JSON(fiber.Map{
+			"message": "Bad request",
+		})
+	}
+
+	oid, err := primitive.ObjectIDFromHex(c.Params("id"))
+	if err != nil {
+		c.Status(fiber.StatusBadRequest)
+		return c.JSON(fiber.Map{
+			"message": "Invalid ID",
+		})
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	var img models.Attachment
+	found := db.AttachmentCollection.FindOne(ctx, bson.M{"_id": oid})
+	if found.Err() != nil {
+		if found.Err() != mongo.ErrNoDocuments {
+			c.Status(fiber.StatusInternalServerError)
+			return c.JSON(fiber.Map{
+				"message": "Internal error",
+			})
+		} else {
+			c.Status(fiber.StatusNotFound)
+			return c.JSON(fiber.Map{
+				"message": "Room has no image",
+			})
+		}
+	}
+	found.Decode(&img)
+	c.Status(fiber.StatusOK)
+	c.Type("image/jpeg")
+	return c.Send(img.Binary.Data)
+}
+
+func HandleDownloadAttachment(c *fiber.Ctx) error {
+	if c.Params("id") == "" {
+		c.Status(fiber.StatusBadRequest)
+		return c.JSON(fiber.Map{
+			"message": "Bad request",
+		})
+	}
+
+	oid, err := primitive.ObjectIDFromHex(c.Params("id"))
+	if err != nil {
+		c.Status(fiber.StatusBadRequest)
+		return c.JSON(fiber.Map{
+			"message": "Invalid ID",
+		})
+	}
+
+	found := db.AttachmentCollection.FindOne(c.Context(), bson.M{"_id": oid})
+	if found.Err() != nil {
+		if found.Err() == mongo.ErrNoDocuments {
+			c.Status(fiber.StatusNotFound)
+			return c.JSON(fiber.Map{
+				"message": "Attachment not found",
+			})
+		}
+	}
+
+	var attachment models.Attachment
+	found.Decode(&attachment)
+
+	c.Status(fiber.StatusOK)
+	c.Response().Header.Set("Content-Type", attachment.MimeType)
+	c.Response().Header.Set("Content-Disposition", "attachment")
+	return c.Send(attachment.Binary.Data)
 }
 
 const maxRoomImageSize = 20 * 1024 * 1024 //20mb

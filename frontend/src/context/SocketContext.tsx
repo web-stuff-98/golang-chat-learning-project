@@ -19,7 +19,6 @@ import { useUsers } from "./UsersContext";
   chatroom_delete     <- chatroom was deleted
   user_delete         <- user was deleted
   chatroom_err        <- chatroom message error (cannot submit an empty comment for example)
-  attachment_progress <- attachment progress event {ID,progress} progress 0 - 1
   attachment_complete <- attachment complete {ID}
   attachment_error    <- attachment error {ID}
 */

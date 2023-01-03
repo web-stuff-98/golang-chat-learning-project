@@ -29,7 +29,9 @@ func main() {
 		log.Fatal("DOTENV ERROR : ", dotEnvErr)
 	}
 
-	app := fiber.New()
+	app := fiber.New(fiber.Config{
+		BodyLimit: 20 * 1024 * 1024, //largest file allowed to upload is 20mb
+	})
 
 	app.Static("/", "./build")
 

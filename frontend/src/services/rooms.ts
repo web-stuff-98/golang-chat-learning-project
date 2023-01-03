@@ -19,6 +19,15 @@ const getRoomImage = async (id: string, cancelToken: CancelToken) => {
   return URL.createObjectURL(blob);
 };
 
+const getAttachmentImage = async (msgId: string, cancelToken: CancelToken) => {
+  const data = await makeRequest(`/api/attachment/${msgId}`, {
+    responseType: "arraybuffer",
+    cancelToken,
+  });
+  const blob = new Blob([data], { type: "image/jpeg" });
+  return URL.createObjectURL(blob);
+};
+
 const createRoom = (data: { name: string }) =>
   makeRequest("/api/room", {
     method: "POST",
@@ -75,4 +84,5 @@ export {
   uploadRoomImage,
   getRoomImage,
   uploadAttachment,
+  getAttachmentImage,
 };

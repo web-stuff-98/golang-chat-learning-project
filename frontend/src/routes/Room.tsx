@@ -22,7 +22,7 @@ export interface IMsg {
   ID?: string;
   has_attachment: boolean;
   attachment_pending: boolean;
-  attachment_progress?: number; // 0 - 1
+  attachment_type?: string;
 }
 
 export default function Room() {
@@ -62,18 +62,6 @@ export default function Room() {
     );
     setMessageInput("");
     const msgId: string = `${Math.random()}${Math.random()}`;
-    setMessages((p) => [
-      ...p,
-      {
-        content: messageInput,
-        timestamp: new Date(),
-        uid: user?.ID!,
-        ID: msgId,
-        has_attachment: file ? true : false,
-        attachment_pending: file ? true : false,
-        attachment_progress: file ? 0 : undefined,
-      },
-    ]);
     if (fileRef.current) {
       await uploadAttachment(id as string, fileRef.current).then(() => {
         setMessages((old) => {
@@ -154,6 +142,7 @@ export default function Room() {
           const i = old.findIndex((m) => m.ID === data.ID);
           if (i === -1) return old;
           newMsgs[i].attachment_pending = false;
+          newMsgs[i].attachment_type = data.attachment_type;
           return [...newMsgs];
         });
       }

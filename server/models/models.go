@@ -27,6 +27,7 @@ type Message struct {
 	Timestamp         primitive.DateTime `bson:"timestamp" json:"timestamp"`
 	HasAttachment     bool               `bson:"has_attachment" json:"has_attachment"`
 	AttachmentPending bool               `bson:"attachment_pending" json:"attachment_pending"`
+	AttachmentType    string             `bson:"attachment_type" json:"attachment_type"`
 }
 
 //socket message JSON from the client
@@ -52,8 +53,8 @@ type RoomImage struct {
 
 type Attachment struct {
 	ID       primitive.ObjectID `bson:"_id,omitempty" json:"ID"` // ID should be the same as the message
-	MimeType string             `bson:"mime_type" json:"mime_type"`
 	Binary   primitive.Binary   `bson:"binary"`
+	MimeType string             `bson:"attachment_type" json:"-"`
 }
 
 //this is for the socket event when a user updates their profile
