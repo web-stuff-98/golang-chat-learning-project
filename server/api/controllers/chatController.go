@@ -69,10 +69,10 @@ type RoomIdMessageId struct {
 }
 
 func NewServer() (*ChatServer, chan string, chan *websocket.Conn, chan string, chan RoomIdMessageId, error) {
-	//closeWsChan can be used to close websockets using the users id
-	closeWsChan := make(chan string)
-	//closeWsChanDirect can be used to close websockets using the actual websocket connection, removes the uid map value too
-	closeWsChanDirect := make(chan *websocket.Conn)
+	//removeChatServerConnByUID can be used to close websockets using the users id
+	removeChatServerConnByUID := make(chan string)
+	//removeChatServerConn can be used to close websockets using the actual websocket connection, removes the uid map value too
+	removeChatServerConn := make(chan *websocket.Conn)
 	//deleteUser channel is used in changestream, when a user is deleted delete all their messages, rooms and send ws event to other users0
 	deleteUserChan := make(chan string)
 	//deleteMsg channel is used to delete messages from a room
@@ -136,7 +136,7 @@ func NewServer() (*ChatServer, chan string, chan *websocket.Conn, chan string, c
 	/* ------------------ Close websocket channel ------------------ */
 	go func() {
 		for {
-			uid := <-closeWsChan
+			uid := <-removeChatServerConnByUID
 			conn := chatServer.connectionsByUid[uid]
 			delete(chatServer.connectionsByUid, uid)
 			delete(chatServer.connections, conn)
@@ -146,7 +146,7 @@ func NewServer() (*ChatServer, chan string, chan *websocket.Conn, chan string, c
 	/* ------------------ Close websocket channel using websocket channel...... for some reason ------------------ */
 	go func() {
 		for {
-			c := <-closeWsChanDirect
+			c := <-removeChatServerConn
 			delete(chatServer.connectionsByUid, c.Locals("uid").(primitive.ObjectID).Hex())
 			delete(chatServer.connections, c)
 		}
@@ -211,7 +211,7 @@ func NewServer() (*ChatServer, chan string, chan *websocket.Conn, chan string, c
 				db.PfpCollection.DeleteOne(context.TODO(), bson.M{"_id": doc.ID})
 			}
 
-			closeWsChan <- uid
+			removeChatServerConnByUID <- uid
 		}
 	}()
 
@@ -308,7 +308,7 @@ func NewServer() (*ChatServer, chan string, chan *websocket.Conn, chan string, c
 		}
 	}()
 
-	return chatServer, closeWsChan, closeWsChanDirect, deleteUserChan, deleteMsgChan, nil
+	return chatServer, removeChatServerConnByUID, removeChatServerConn, deleteUserChan, deleteMsgChan, nil
 }
 
 /* ------------------ WS HTTP API ROUTES ------------------ */
@@ -339,7 +339,7 @@ func HandleWsUpgrade(c *fiber.Ctx) error {
 	return fiber.ErrUpgradeRequired
 }
 
-func HandleWsConn(chatServer *ChatServer, closeWsChanDirect chan *websocket.Conn) func(*fiber.Ctx) error {
+func HandleWsConn(chatServer *ChatServer, removeChatServerConn chan *websocket.Conn) func(*fiber.Ctx) error {
 	return websocket.New(func(c *websocket.Conn) {
 		chatServer.registerConn <- c
 		for {
@@ -389,7 +389,7 @@ func HandleWsConn(chatServer *ChatServer, closeWsChanDirect chan *websocket.Conn
 			}
 		}
 		defer func() {
-			closeWsChanDirect <- c
+			removeChatServerConn <- c
 		}()
 	})
 }
