@@ -1,1 +1,3 @@
 /server/.env
+/server/build
+/frontend/build
