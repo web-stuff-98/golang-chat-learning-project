@@ -723,6 +723,12 @@ func HandleUploadAttachment(chatServer *ChatServer) func(*fiber.Ctx) error {
 			buf := &bytes.Buffer{}
 			width := math.Min(float64(img.Bounds().Dx()), 350)
 			img = resize.Resize(uint(width), 0, img, resize.Lanczos2)
+			if err := jpeg.Encode(buf, img, nil); err != nil {
+				c.Status(fiber.StatusInternalServerError)
+				return c.JSON(fiber.Map{
+					"message": "Internal error",
+				})
+			}
 			db.AttachmentCollection.InsertOne(c.Context(), models.Attachment{
 				ID:       matchingMsg.ID,
 				MimeType: file.Header.Get("Content-Type"),
@@ -776,14 +782,16 @@ func HandleUploadAttachment(chatServer *ChatServer) func(*fiber.Ctx) error {
 			},
 		})
 
-		// Emit attachment complete message to all connected clients in room
+		// Emit attachment complete message to other connected clients in room
 		for r := range chatServer.chatRooms {
 			if chatServer.chatRooms[r].roomId == roomId.Hex() {
-				for conn := range chatServer.chatRooms[r].connections {
-					conn.WriteJSON(fiber.Map{
-						"event_type": "attachment_complete",
-						"ID":         matchingMsg.ID.Hex(),
-					})
+				for connUid := range chatServer.chatRooms[r].connectionsByUid {
+					if connUid != c.Locals("uid").(primitive.ObjectID).Hex() {
+						chatServer.chatRooms[r].connectionsByUid[connUid].WriteJSON(fiber.Map{
+							"event_type": "attachment_complete",
+							"ID":         matchingMsg.ID.Hex(),
+						})
+					}
 				}
 			}
 		}

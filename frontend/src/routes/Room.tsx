@@ -61,20 +61,29 @@ export default function Room() {
       })
     );
     setMessageInput("");
+    const msgId: string = `${Math.random()}${Math.random()}`;
     setMessages((p) => [
       ...p,
       {
         content: messageInput,
         timestamp: new Date(),
         uid: user?.ID!,
-        ID: `${Math.random()}${Math.random()}`,
+        ID: msgId,
         has_attachment: file ? true : false,
         attachment_pending: file ? true : false,
         attachment_progress: file ? 0 : undefined,
       },
     ]);
     if (fileRef.current) {
-      await uploadAttachment(id as string, fileRef.current);
+      await uploadAttachment(id as string, fileRef.current).then(() => {
+        setMessages((old) => {
+          let newMsgs = old;
+          const i = old.findIndex((m) => m.ID === msgId);
+          if (i === -1) return old;
+          newMsgs[i].attachment_pending = false;
+          return [...newMsgs];
+        });
+      });
     }
     fileRef.current = undefined;
     setFile(undefined);
@@ -137,6 +146,15 @@ export default function Room() {
           msg: e.data.content,
           err: true,
           pen: false,
+        });
+      }
+      if (data.event_type === "attachment_complete") {
+        setMessages((old) => {
+          let newMsgs = old;
+          const i = old.findIndex((m) => m.ID === data.ID);
+          if (i === -1) return old;
+          newMsgs[i].attachment_pending = false;
+          return [...newMsgs];
         });
       }
     }
