@@ -33,6 +33,8 @@ export default function Message({
           {msg.content}
         </div>
       </div>
+      {msg.has_attachment ? "HAS ATTACHMENT | " : "NO ATTACHMENT | "}
+      {msg.attachment_pending ? "ATTACHMENT PENDING" : "ATTACHMENT NOT PENDING"}
       <div className={classes.imageAttachment}></div>
     </div>
   );

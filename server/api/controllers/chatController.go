@@ -745,20 +745,36 @@ func HandleUploadAttachment(chatServer *ChatServer) func(*fiber.Ctx) error {
 		}
 		src.Close()
 
-		/*I used chatgpt to help me figure this out... it got stuff wrong probably because
-		its training data uses older versions of mongodb... had to correct it */
-		arrayFilters := options.ArrayFilters{
-			Filters: []interface{}{
-				bson.M{"_id": matchingMsg.ID}, // remember try changing _id to i._id if it doesnt work
-			},
-		}
+		/*I used chatgpt to help me figure this out... it got stuff wrong, had to correct it */
 		db.RoomCollection.UpdateByID(c.Context(), roomId, []bson.M{
 			{
 				"$set": bson.M{
-					"messages.$[i].attachment_pending": false,
+					"messages": bson.M{
+						"$map": bson.M{
+							"input": "$messages",
+							"as":    "message",
+							"in": bson.M{
+								"$cond": bson.M{
+									"if": bson.M{
+										"$eq": []interface{}{"$$message._id", matchingMsg.ID},
+									},
+									"then": bson.M{
+										"$mergeObjects": []interface{}{
+											"$$message",
+											bson.M{
+												"has_attachment":     true,
+												"attachment_pending": false,
+											},
+										},
+									},
+									"else": "$$message",
+								},
+							},
+						},
+					},
 				},
 			},
-		}, options.Update().SetArrayFilters(arrayFilters))
+		})
 
 		// Emit attachment complete message to all connected clients in room
 		for r := range chatServer.chatRooms {

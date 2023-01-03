@@ -76,6 +76,8 @@ export default function Room() {
     if (fileRef.current) {
       await uploadAttachment(id as string, fileRef.current);
     }
+    fileRef.current = undefined;
+    setFile(undefined);
   };
 
   const handleFileInput = (e: ChangeEvent<HTMLInputElement>) => {
@@ -180,6 +182,7 @@ export default function Room() {
             name="Select attachment"
             ariaLabel="Select attachment"
             Icon={AiFillFile}
+            style={file ? { color: "lime" } : {}}
             onClick={() => fileInputRef.current?.click()}
           />
           <input
