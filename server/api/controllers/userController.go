@@ -25,7 +25,7 @@ import (
 )
 
 // close websocket connection using sid
-func closeWsConn(c *fiber.Ctx, closeWsChan chan string, cookie string) error {
+func closeWsConn(c *fiber.Ctx, removeChatServerConnByUID chan string, cookie string) error {
 	if cookie == "" {
 		return fmt.Errorf("No cookie")
 	}
@@ -37,7 +37,7 @@ func closeWsConn(c *fiber.Ctx, closeWsChan chan string, cookie string) error {
 	if err != nil {
 		return err
 	}
-	closeWsChan <- user["_id"].(primitive.ObjectID).Hex()
+	removeChatServerConnByUID <- user["_id"].(primitive.ObjectID).Hex()
 	return nil
 }
 
@@ -160,7 +160,7 @@ func HandleLogin(production bool) fiber.Handler {
 	}
 }
 
-func HandleLogout(closeWsChan chan string) fiber.Handler {
+func HandleLogout(removeChatServerConnByUID chan string) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		if c.Cookies("session_token", "") == "" {
 			c.Status(fiber.StatusUnauthorized)
@@ -168,7 +168,7 @@ func HandleLogout(closeWsChan chan string) fiber.Handler {
 				"message": "You have no cookie",
 			})
 		}
-		err := closeWsConn(c, closeWsChan, c.Cookies("session_token"))
+		err := closeWsConn(c, removeChatServerConnByUID, c.Cookies("session_token"))
 		if err != nil {
 			c.ClearCookie("session_token")
 			c.Status(fiber.StatusInternalServerError)
@@ -254,7 +254,7 @@ func Welcome(c *fiber.Ctx) error {
 	})
 }
 
-func HandleRefresh(closeWsChan chan string, production bool) fiber.Handler {
+func HandleRefresh(removeChatServerConnByUID chan string, production bool) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		if c.Cookies("session_token", "") == "" {
 			c.Status(fiber.StatusUnauthorized)
@@ -266,7 +266,7 @@ func HandleRefresh(closeWsChan chan string, production bool) fiber.Handler {
 		issuer, err := helpers.DecodeTokenIssuer(c)
 		if err != nil {
 			c.Status(fiber.StatusUnauthorized)
-			err := closeWsConn(c, closeWsChan, c.Cookies("session_token"))
+			err := closeWsConn(c, removeChatServerConnByUID, c.Cookies("session_token"))
 			if err != nil {
 				c.Status(fiber.StatusInternalServerError)
 				return c.JSON(fiber.Map{
@@ -281,7 +281,7 @@ func HandleRefresh(closeWsChan chan string, production bool) fiber.Handler {
 		session, err := helpers.GetSessionFromSID(c, issuer)
 		if err != nil {
 			c.Status(fiber.StatusUnauthorized)
-			err := closeWsConn(c, closeWsChan, c.Cookies("session_token"))
+			err := closeWsConn(c, removeChatServerConnByUID, c.Cookies("session_token"))
 			if err != nil {
 				c.Status(fiber.StatusInternalServerError)
 				return c.JSON(fiber.Map{
@@ -297,7 +297,7 @@ func HandleRefresh(closeWsChan chan string, production bool) fiber.Handler {
 		if time.Now().After(exp) {
 			db.SessionCollection.DeleteOne(c.Context(), bson.M{"_id": issuer})
 			c.Status(fiber.StatusUnauthorized)
-			err := closeWsConn(c, closeWsChan, c.Cookies("session_token"))
+			err := closeWsConn(c, removeChatServerConnByUID, c.Cookies("session_token"))
 			if err != nil {
 				c.Status(fiber.StatusInternalServerError)
 				return c.JSON(fiber.Map{
@@ -312,7 +312,7 @@ func HandleRefresh(closeWsChan chan string, production bool) fiber.Handler {
 		user, err := helpers.GetUserFromSID(c, issuer)
 		if err != nil {
 			c.Status(fiber.StatusNotFound)
-			err := closeWsConn(c, closeWsChan, c.Cookies("session_token"))
+			err := closeWsConn(c, removeChatServerConnByUID, c.Cookies("session_token"))
 			if err != nil {
 				c.Status(fiber.StatusInternalServerError)
 				return c.JSON(fiber.Map{

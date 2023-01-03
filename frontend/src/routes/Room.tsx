@@ -108,9 +108,6 @@ export default function Room() {
       leaveRoom(id as string).catch((e) =>
         setResMsg({ msg: `${e}`, err: true, pen: false })
       );
-      if (socket) {
-        socket.removeEventListener("message", messageListener);
-      }
     };
   }, [id]);
 
@@ -144,7 +141,7 @@ export default function Room() {
         }
         if (data.event_type === "chatroom_err") {
           openModal("Message", {
-            msg: data.content,
+            msg: e.data.content,
             err: true,
             pen: false,
           });

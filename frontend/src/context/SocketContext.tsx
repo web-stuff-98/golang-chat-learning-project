@@ -71,22 +71,38 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
     [socket]
   );
 
-  useEffect(() => {
-    if (!user) return;
-    //wss <- secure socket protocol.
+  const closeSocket = () => {
+    setSocket(undefined);
+  };
+
+  const connectSocket = () => {
     const socket = new WebSocket(
       process.env.NODE_ENV === "development"
         ? "ws://localhost:8080/ws/conn"
         : "wss://golang-chat-learning-project.herokuapp.com/ws/conn"
     );
     setSocket(socket);
-    socket.addEventListener("message", messageListener);
-    return () => {
-      socket.removeEventListener("message", messageListener);
-      socket.close();
-      setSocket(undefined);
-    };
+  };
+
+  useEffect(() => {
+    if (!user) return;
+    //wss <- secure socket protocol.
+    connectSocket();
   }, [user]);
+
+  useEffect(() => {
+    if (socket) {
+      socket?.addEventListener("message", messageListener);
+      socket?.addEventListener("close", closeSocket);
+    }
+    return () => {
+      if (socket) {
+        socket?.removeEventListener("message", messageListener);
+        socket?.removeEventListener("close", closeSocket);
+        socket?.close();
+      }
+    };
+  }, [socket]);
 
   return (
     <SocketContext.Provider value={{ socket }}>

@@ -43,8 +43,7 @@ type ChatServer struct {
 
 	inbound chan InboundMessage
 
-	registerConn   chan *websocket.Conn
-	unregisterConn chan *websocket.Conn
+	registerConn chan *websocket.Conn
 
 	chatRooms []*ChatRoom
 
@@ -84,8 +83,7 @@ func NewServer() (*ChatServer, chan string, chan *websocket.Conn, chan string, c
 
 		inbound: make(chan InboundMessage),
 
-		registerConn:   make(chan *websocket.Conn),
-		unregisterConn: make(chan *websocket.Conn),
+		registerConn: make(chan *websocket.Conn),
 
 		registerRoomConn:   make(chan ChatRoomConnectionRegistration), //register connection by uid
 		unregisterRoomConn: make(chan ChatRoomConnectionRegistration), //unregister connection by uid
@@ -133,22 +131,32 @@ func NewServer() (*ChatServer, chan string, chan *websocket.Conn, chan string, c
 		}
 	}()
 
-	/* ------------------ Close websocket channel ------------------ */
+	/* ------------------ Close chatserver connection using uid hex string ------------------ */
 	go func() {
 		for {
 			uid := <-removeChatServerConnByUID
 			conn := chatServer.connectionsByUid[uid]
+			log.Println("Close chatserver connection : ", uid)
 			delete(chatServer.connectionsByUid, uid)
 			delete(chatServer.connections, conn)
+			for i, _ := range chatServer.chatRooms {
+				delete(chatServer.chatRooms[i].connections, conn)
+				delete(chatServer.chatRooms[i].connectionsByUid, uid)
+			}
 		}
 	}()
 
-	/* ------------------ Close websocket channel using websocket channel...... for some reason ------------------ */
+	/* ------------------ Close chatserver connection using websocket connection ------------------ */
 	go func() {
 		for {
 			c := <-removeChatServerConn
 			delete(chatServer.connectionsByUid, c.Locals("uid").(primitive.ObjectID).Hex())
 			delete(chatServer.connections, c)
+			log.Println("Close chatserver connection : ", c.Locals("uid").(primitive.ObjectID).Hex())
+			for i, _ := range chatServer.chatRooms {
+				delete(chatServer.chatRooms[i].connections, c)
+				delete(chatServer.chatRooms[i].connectionsByUid, c.Locals("uid").(primitive.ObjectID).Hex())
+			}
 		}
 	}()
 
@@ -249,14 +257,7 @@ func NewServer() (*ChatServer, chan string, chan *websocket.Conn, chan string, c
 			c := <-chatServer.registerConn
 			chatServer.connections[c] = true
 			chatServer.connectionsByUid[c.Locals("uid").(primitive.ObjectID).Hex()] = c
-		}
-	}()
-	/* ------------------ Unregister ws connection channel ------------------ */
-	go func() {
-		for {
-			c := <-chatServer.unregisterConn
-			delete(chatServer.connections, c)
-			delete(chatServer.connectionsByUid, c.Locals("uid").(primitive.ObjectID).Hex())
+			log.Println("Register connection : ", c.Locals("uid").(primitive.ObjectID).Hex())
 		}
 	}()
 	/* ------------------ Register room connection channel ------------------ */
@@ -265,9 +266,10 @@ func NewServer() (*ChatServer, chan string, chan *websocket.Conn, chan string, c
 			c := <-chatServer.registerRoomConn
 			conn, ok := chatServer.connectionsByUid[c.uid]
 			if !ok {
-				log.Println("Connection for user '%d' could not be found, this is bad!!!!! It is what is causing the nil pointer dereference / memory address error.", c.uid)
-				return
+				log.Println("Fuck")
+				break
 			}
+			log.Println("Register room connection : ", c.uid)
 			foundRoom := false
 			for i := range chatServer.chatRooms {
 				if chatServer.chatRooms[i].roomId == c.id {
@@ -299,6 +301,7 @@ func NewServer() (*ChatServer, chan string, chan *websocket.Conn, chan string, c
 		for {
 			c := <-chatServer.unregisterRoomConn
 			conn := chatServer.connectionsByUid[c.uid]
+			log.Println("Unregister room connection : ", c.uid)
 			for i := range chatServer.chatRooms {
 				if chatServer.chatRooms[i].roomId == c.id {
 					delete(chatServer.chatRooms[i].connections, conn)
@@ -334,6 +337,7 @@ func HandleWsUpgrade(c *fiber.Ctx) error {
 		socketId := uuid.New().String()
 		c.Locals("socketId", socketId)
 		helpers.AddSocketIdToSession(c, socketId)
+		log.Println("Ws upgrade")
 		return c.Next()
 	}
 	return fiber.ErrUpgradeRequired
@@ -342,13 +346,15 @@ func HandleWsUpgrade(c *fiber.Ctx) error {
 func HandleWsConn(chatServer *ChatServer, removeChatServerConn chan *websocket.Conn) func(*fiber.Ctx) error {
 	return websocket.New(func(c *websocket.Conn) {
 		chatServer.registerConn <- c
+		for i, _ := range chatServer.chatRooms {
+			delete(chatServer.chatRooms[i].connectionsByUid, c.Locals("uid").(primitive.ObjectID).Hex())
+			delete(chatServer.chatRooms[i].connections, c)
+		}
 		for {
-			_, ok := chatServer.connections[c]
-			if !ok {
-				chatServer.registerConn <- c
-			}
+			log.Println("Socket event")
 			var Msg models.MessageEvent
 			if err := c.ReadJSON(&Msg); err != nil {
+				log.Println("Read err")
 				break
 			}
 			msgId := primitive.NewObjectID()

@@ -12,7 +12,7 @@ import (
 	"github.com/gofiber/websocket/v2"
 )
 
-func Setup(app *fiber.App, chatServer *controllers.ChatServer, closeWsChan chan string, closeWsChanDirect chan *websocket.Conn, protectedUids *map[primitive.ObjectID]struct{}, protectedRids *map[primitive.ObjectID]struct{}, ipBlockInfoMap map[string]map[string]mylimiter.BlockInfo, production bool) {
+func Setup(app *fiber.App, chatServer *controllers.ChatServer, removeChatServerConnByUID chan string, removeChatServerConn chan *websocket.Conn, protectedUids *map[primitive.ObjectID]struct{}, protectedRids *map[primitive.ObjectID]struct{}, ipBlockInfoMap map[string]map[string]mylimiter.BlockInfo, production bool) {
 	app.Post("/api/welcome", controllers.Welcome)
 	app.Post("/api/user/login", controllers.HandleLogin(production))
 	app.Post("/api/user/register", controllers.HandleRegister(production))
@@ -29,8 +29,8 @@ func Setup(app *fiber.App, chatServer *controllers.ChatServer, closeWsChan chan 
 		MaxReqs:       30,
 		BlockDuration: time.Minute * 2,
 		RouteName:     "refresh",
-	}), controllers.HandleRefresh(closeWsChan, production))
-	app.Post("/api/user/logout", controllers.HandleLogout(closeWsChan))
+	}), controllers.HandleRefresh(removeChatServerConnByUID, production))
+	app.Post("/api/user/logout", controllers.HandleLogout(removeChatServerConnByUID))
 	app.Get("/api/user/:id", mylimiter.SimpleLimiterMiddleware(ipBlockInfoMap, mylimiter.SimpleLimiterOpts{
 		Window:        time.Second * 10,
 		MaxReqs:       30,
@@ -39,7 +39,7 @@ func Setup(app *fiber.App, chatServer *controllers.ChatServer, closeWsChan chan 
 	}), helpers.AuthMiddleware, controllers.HandleGetUser)
 
 	app.Use("/ws", controllers.HandleWsUpgrade)
-	app.Get("/ws/conn", controllers.HandleWsConn(chatServer, closeWsChanDirect))
+	app.Get("/ws/conn", controllers.HandleWsConn(chatServer, removeChatServerConn))
 
 	app.Get("/api/room/:id", mylimiter.SimpleLimiterMiddleware(ipBlockInfoMap, mylimiter.SimpleLimiterOpts{
 		Window:        time.Second * 10,
