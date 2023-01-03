@@ -147,6 +147,9 @@ export default function Room() {
           return [...newMsgs];
         });
       }
+      if (data.event_type === "message_delete") {
+        setMessages((old) => [...old.filter((m) => m.ID !== data.ID)]);
+      }
     }
   }, []);
 

@@ -50,7 +50,7 @@ func main() {
 		AllowCredentials: true,
 	}))
 
-	chatServer, closeWsChan, deleteUserChan, err := controllers.NewServer()
+	chatServer, closeWsChan, deleteUserChan, deleteMsgChan, err := controllers.NewServer()
 	if err != nil {
 		log.Fatal(fmt.Printf("Failed to setup chat server : %d", err))
 	}
@@ -71,8 +71,8 @@ func main() {
 	/* -------- Set up routes with all the data needed sent down -------- */
 	routes.Setup(app, chatServer, closeWsChan, &uids, &rids, ipBlockInfoMap, production)
 
-	/* -------- Every 10 minutes clean up expired sessions and ipBlockInfo map -------- */
-	cleanupTicker := time.NewTicker(10 * time.Minute)
+	/* -------- Every 2 minutes clean up sessions, ipBlockInfo, and delete old messages -------- */
+	cleanupTicker := time.NewTicker(2 * time.Minute)
 	quitCleanup := make(chan struct{})
 	go func() {
 		for {
@@ -89,6 +89,27 @@ func main() {
 						delete(ipBlockInfoMap, ip)
 					}
 				}
+				findOpts := options.Find().SetBatchSize(10)
+				cursor, err := db.RoomCollection.Find(context.TODO(), bson.D{}, findOpts)
+				if err != nil {
+					log.Fatal("CURSOR ERR : ", err)
+				}
+				for cursor.Next(context.TODO()) {
+					var room models.Room
+					err := cursor.Decode(&room)
+					if err != nil {
+						log.Fatal("ERROR DECODING : ", err)
+					}
+					for _, m := range room.Messages {
+						if m.Timestamp.Time().Before(time.Now().Add(-time.Minute * 20)) {
+							deleteMsgChan <- controllers.RoomIdMessageId{
+								RoomId:    room.ID,
+								MessageId: m.ID,
+							}
+						}
+					}
+				}
+				defer cursor.Close(context.TODO())
 			case <-quitCleanup:
 				cleanupTicker.Stop()
 				return

@@ -96,11 +96,18 @@ func HandleTestRateLimit(c *fiber.Ctx) error {
 	})
 }
 
-func NewServer() (*ChatServer, chan string, chan string, error) {
+type RoomIdMessageId struct {
+	RoomId    primitive.ObjectID
+	MessageId primitive.ObjectID
+}
+
+func NewServer() (*ChatServer, chan string, chan string, chan RoomIdMessageId, error) {
 	//closeWsChan can be used to close websockets using the users id
 	closeWsChan := make(chan string)
 	//deleteUser channel is used in changestream, when a user is deleted delete all their messages, rooms and send ws event to other users0
 	deleteUserChan := make(chan string)
+	//deleteMsg channel is used to delete messages from a room
+	deleteMsgChan := make(chan RoomIdMessageId)
 
 	chatServer := &ChatServer{
 		connections:      make(map[*websocket.Conn]bool),
@@ -193,6 +200,9 @@ func NewServer() (*ChatServer, chan string, chan string, error) {
 				if err != nil {
 					log.Fatal("ERROR DECODING : ", err)
 				}
+				for _, m := range doc.Messages {
+					db.AttachmentCollection.DeleteOne(context.TODO(), bson.M{"_id": m.ID})
+				}
 				//delete rooms. cannot use deleteMany because the room image needs to be deleted too.
 				if doc.Author.Hex() == uid {
 					db.RoomCollection.DeleteOne(context.TODO(), bson.M{"_id": doc.ID})
@@ -221,6 +231,29 @@ func NewServer() (*ChatServer, chan string, chan string, error) {
 			}
 
 			closeWsChan <- uid
+		}
+	}()
+
+	/* ------------------ Delete message channel ------------------ */
+	go func() {
+		for {
+			rm := <-deleteMsgChan
+			db.AttachmentCollection.DeleteOne(context.TODO(), bson.M{"_id": rm.MessageId})
+			db.RoomCollection.UpdateByID(context.TODO(), rm.RoomId, bson.M{
+				"$pull": bson.M{
+					"messages": bson.M{"_id": rm.MessageId},
+				},
+			})
+			for r := range chatServer.chatRooms {
+				if chatServer.chatRooms[r].roomId == rm.RoomId.Hex() {
+					for connUid := range chatServer.chatRooms[r].connectionsByUid {
+						chatServer.chatRooms[r].connectionsByUid[connUid].WriteJSON(fiber.Map{
+							"event_type": "message_delete",
+							"ID":         rm.MessageId.Hex(),
+						})
+					}
+				}
+			}
 		}
 	}()
 
@@ -285,7 +318,7 @@ func NewServer() (*ChatServer, chan string, chan string, error) {
 		}
 	}()
 
-	return chatServer, closeWsChan, deleteUserChan, nil
+	return chatServer, closeWsChan, deleteUserChan, deleteMsgChan, nil
 }
 
 /* ------------------ WS HTTP API ROUTES ------------------ */
@@ -1112,6 +1145,10 @@ func HandleDeleteRoom(chatServer *ChatServer, protectedRids *map[primitive.Objec
 					"message": "Unauthorized",
 				})
 			}
+		}
+
+		for _, m := range room.Messages {
+			db.AttachmentCollection.DeleteOne(c.Context(), bson.M{"_id": m.ID})
 		}
 
 		res, err := db.RoomCollection.DeleteOne(c.Context(), bson.M{"_id": oid})

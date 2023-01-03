@@ -21,6 +21,7 @@ import { useUsers } from "./UsersContext";
   chatroom_err        <- chatroom message error (cannot submit an empty comment for example)
   attachment_complete <- attachment complete {ID}
   attachment_error    <- attachment error {ID}
+  message_delete      <- message delete {ID}
 */
 
 const SocketContext = createContext<{
