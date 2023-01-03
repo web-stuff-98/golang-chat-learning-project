@@ -201,7 +201,9 @@ func NewServer() (*ChatServer, chan string, chan string, chan RoomIdMessageId, e
 					log.Fatal("ERROR DECODING : ", err)
 				}
 				for _, m := range doc.Messages {
-					db.AttachmentCollection.DeleteOne(context.TODO(), bson.M{"_id": m.ID})
+					if m.Uid == uid {
+						db.AttachmentCollection.DeleteOne(context.TODO(), bson.M{"_id": m.ID})
+					}
 				}
 				//delete rooms. cannot use deleteMany because the room image needs to be deleted too.
 				if doc.Author.Hex() == uid {
