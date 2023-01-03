@@ -50,7 +50,7 @@ func main() {
 		AllowCredentials: true,
 	}))
 
-	chatServer, closeWsChan, deleteUserChan, closeWsChanDirect, deleteMsgChan, err := controllers.NewServer()
+	chatServer, removeChatServerConnByUID, removeChatServerConn, deleteUserChan, deleteMsgChan, err := controllers.NewServer()
 	if err != nil {
 		log.Fatal(fmt.Printf("Failed to setup chat server : %d", err))
 	}
@@ -69,7 +69,7 @@ func main() {
 	}()
 
 	/* -------- Set up routes with all the data needed sent down -------- */
-	routes.Setup(app, chatServer, closeWsChan, closeWsChanDirect, &uids, &rids, ipBlockInfoMap, production)
+	routes.Setup(app, chatServer, removeChatServerConnByUID, removeChatServerConn, &uids, &rids, ipBlockInfoMap, production)
 
 	/* -------- Every 2 minutes clean up sessions, ipBlockInfo, and delete old messages -------- */
 	cleanupTicker := time.NewTicker(2 * time.Minute)

@@ -68,7 +68,7 @@ type RoomIdMessageId struct {
 	MessageId primitive.ObjectID
 }
 
-func NewServer() (*ChatServer, chan string, chan string, chan *websocket.Conn, chan RoomIdMessageId, error) {
+func NewServer() (*ChatServer, chan string, chan *websocket.Conn, chan string, chan RoomIdMessageId, error) {
 	//closeWsChan can be used to close websockets using the users id
 	closeWsChan := make(chan string)
 	//closeWsChanDirect can be used to close websockets using the actual websocket connection, removes the uid map value too
@@ -308,7 +308,7 @@ func NewServer() (*ChatServer, chan string, chan string, chan *websocket.Conn, c
 		}
 	}()
 
-	return chatServer, closeWsChan, deleteUserChan, closeWsChanDirect, deleteMsgChan, nil
+	return chatServer, closeWsChan, closeWsChanDirect, deleteUserChan, deleteMsgChan, nil
 }
 
 /* ------------------ WS HTTP API ROUTES ------------------ */
