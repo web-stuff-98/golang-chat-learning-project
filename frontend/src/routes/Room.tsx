@@ -144,7 +144,7 @@ export default function Room() {
         }
         if (data.event_type === "chatroom_err") {
           openModal("Message", {
-            msg: e.data.content,
+            msg: data.content,
             err: true,
             pen: false,
           });

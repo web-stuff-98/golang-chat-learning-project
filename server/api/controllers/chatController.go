@@ -120,6 +120,7 @@ func NewServer() (*ChatServer, chan string, chan string, chan *websocket.Conn, c
 								if r := recover(); r != nil {
 									log.Println("Recovered from panic: ", r)
 								}
+								return
 							}()
 							err := connI.WriteJSON(msg)
 							if err != nil {
