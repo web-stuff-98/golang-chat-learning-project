@@ -41,8 +41,6 @@ export default function Room({ room }: { room: IRoom }) {
       }
     } else {
       const r = getRoomData(room.ID);
-      URL.revokeObjectURL(r?.img_url!);
-      updateRoomData({ ID: room.ID, img_url: undefined });
       setFetching(false);
       if (imgCancelToken.current) {
         imgCancelSource.current?.cancel("Post no longer visible");
@@ -56,6 +54,8 @@ export default function Room({ room }: { room: IRoom }) {
       if (imgCancelToken.current) {
         imgCancelSource.current?.cancel("Post no longer visible");
       }
+      const r = getRoomData(room.ID);
+      if (r) URL.revokeObjectURL(r?.img_url!);
     };
   }, []);
 

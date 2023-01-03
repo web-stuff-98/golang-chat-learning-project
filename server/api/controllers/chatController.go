@@ -149,7 +149,7 @@ func NewServer() (*ChatServer, chan string, chan string, chan RoomIdMessageId, e
 						if connI != nil {
 							defer func() {
 								if r := recover(); r != nil {
-									log.Println("Recovered from nil pointer dereference: ", r)
+									log.Println("Recovered from panic: ", r)
 								}
 							}()
 							err := connI.WriteJSON(msg)
@@ -249,6 +249,11 @@ func NewServer() (*ChatServer, chan string, chan string, chan RoomIdMessageId, e
 			for r := range chatServer.chatRooms {
 				if chatServer.chatRooms[r].roomId == rm.RoomId.Hex() {
 					for connUid := range chatServer.chatRooms[r].connectionsByUid {
+						defer func() {
+							if r := recover(); r != nil {
+								log.Println("Recovered from panic: ", r)
+							}
+						}()
 						chatServer.chatRooms[r].connectionsByUid[connUid].WriteJSON(fiber.Map{
 							"event_type": "message_delete",
 							"ID":         rm.MessageId.Hex(),
