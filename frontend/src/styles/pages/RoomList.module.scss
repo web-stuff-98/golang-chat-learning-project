@@ -43,6 +43,14 @@
     padding: var(--padding-medium);
     border-radius: var(--border-radius-medium);
 
+    .spinner {
+      animation: spin 700ms linear infinite;
+      fill: var(--text-color);
+      width: 3rem;
+      height: 3rem;
+      margin: auto;
+    }
+
     .room {
       background-position: center;
       background-size: cover;
@@ -70,5 +78,14 @@
         justify-content: center;
       }
     }
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotateZ(0deg);
+  }
+  to {
+    transform: rotateZ(360deg);
   }
 }

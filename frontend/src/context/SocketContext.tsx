@@ -48,7 +48,6 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
       if (data.event_type === "chatroom_update") {
-        console.log("UPDATE");
         if (!ownRooms) {
           updateRoomData(data);
         } else {

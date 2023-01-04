@@ -1,7 +1,7 @@
 .container {
   display: flex;
   height: calc(100vh - calc(var(--nav-height) + var(--header-height)));
-  padding-top:calc(var(--nav-height) + var(--header-height));
+  padding-top: calc(var(--nav-height) + var(--header-height));
   position: relative;
 
   .backgroundOuterContainer {
@@ -56,7 +56,7 @@
   }
 
   nav {
-    z-index: 98;
+    z-index: 99;
     top: 0;
     position: fixed;
     width: 100vw;
@@ -69,7 +69,27 @@
     padding: 0 var(--horizontal-whitespace);
     color: var(--text-color-contrast);
     box-sizing: border-box;
-    border-bottom: 1px solid var(--base-medium);
+    border-bottom: 2px outset var(--base-medium);
+    border-top: 1px inset rgba(255, 255, 255, 0.05);
+
+    .menuIcon {
+      padding-left: 0.4rem;
+      cursor: pointer;
+      background: none;
+      padding: none;
+      border: none;
+      outline: none;
+      margin: auto 0;
+      height: 2.5rem;
+      position: absolute;
+      left:0;
+      bottom:0;
+      padding-top: 1.5px;
+      svg {
+        font-size: 2rem;
+        fill: white;
+      }
+    }
 
     .userContainer {
       margin-right: 0.125rem;
@@ -86,7 +106,7 @@
         color: white;
         text-decoration: none;
         font-weight: 600;
-        font-size: min(1.25rem, 4.25vw);
+        font-size: 1.125rem;
       }
     }
   }
@@ -109,15 +129,14 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      font-size: 1.5rem;
+      font-size: 1.666rem;
       font-weight: 600;
-      letter-spacing: 2px;
       color: white;
 
       img {
         filter: drop-shadow(0px 2px 3px rgba(0, 0, 0, 0.333));
-        width: 3.5rem;
-        height: 3.5rem;
+        width: 3.33rem;
+        height: 3.33rem;
       }
     }
 
@@ -130,7 +149,7 @@
       text-align: right;
       display: flex;
       padding: 0.5rem 0;
-      font-size: 1rem;
+      font-size: 0.7rem;
       color: white;
     }
   }

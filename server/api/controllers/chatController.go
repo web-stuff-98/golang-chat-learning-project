@@ -273,7 +273,6 @@ func NewServer() (*ChatServer, chan string, chan *websocket.Conn, chan string, c
 			foundRoom := false
 			for i := range chatServer.chatRooms {
 				if chatServer.chatRooms[i].roomId == c.id {
-					// its going wrong here, because of above... conn is nil... causing the nil pointer dereference...
 					chatServer.chatRooms[i].connections[conn] = true
 					chatServer.chatRooms[i].connectionsByUid[c.uid] = conn
 					foundRoom = true

@@ -1,14 +1,14 @@
 {
   "files": {
-    "main.css": "/static/css/main.c9ecdd91.css",
-    "main.js": "/static/js/main.cc934c2f.js",
-    "static/media/Simvoni-gxm5Y.ttf": "/static/media/Simvoni-gxm5Y.a5cb1688f65d152ad145.ttf",
+    "main.css": "/static/css/main.7e4883e1.css",
+    "main.js": "/static/js/main.d9063959.js",
+    "static/media/monofonto.regular.otf": "/static/media/monofonto.regular.138cb33589c39f6523ca.otf",
     "index.html": "/index.html",
-    "main.c9ecdd91.css.map": "/static/css/main.c9ecdd91.css.map",
-    "main.cc934c2f.js.map": "/static/js/main.cc934c2f.js.map"
+    "main.7e4883e1.css.map": "/static/css/main.7e4883e1.css.map",
+    "main.d9063959.js.map": "/static/js/main.d9063959.js.map"
   },
   "entrypoints": [
-    "static/css/main.c9ecdd91.css",
-    "static/js/main.cc934c2f.js"
+    "static/css/main.7e4883e1.css",
+    "static/js/main.d9063959.js"
   ]
 }
