@@ -30,9 +30,9 @@ export default function Layout() {
       }
       case "Modal": {
         const properties: CSSProperties = {
-          width: "23.75rem",
+          width: "20rem",
           height: "fit-content",
-          maxWidth: "min(23.75rem, calc(100vw - 2rem))",
+          maxWidth: "min(20rem, calc(100vw - 2rem))",
           background: "var(--foreground)",
           border: "1px solid var(--base-medium)",
           borderRadius: "var(--border-radius)",

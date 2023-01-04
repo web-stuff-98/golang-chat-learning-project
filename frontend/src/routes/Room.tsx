@@ -62,20 +62,6 @@ export default function Room() {
       })
     );
     setMessageInput("");
-    const msgId: string = `${Math.random()}${Math.random()}`;
-    if (fileRef.current) {
-      await uploadAttachment(id as string, fileRef.current).then(() => {
-        setMessages((old) => {
-          let newMsgs = old;
-          const i = old.findIndex((m) => m.ID === msgId);
-          if (i === -1) return old;
-          newMsgs[i].attachment_pending = false;
-          return [...newMsgs];
-        });
-      });
-    }
-    fileRef.current = undefined;
-    setFile(undefined);
   };
 
   const handleFileInput = (e: ChangeEvent<HTMLInputElement>) => {
@@ -158,6 +144,20 @@ export default function Room() {
         }
         if (data.event_type === "message_delete") {
           setMessages((old) => [...old.filter((m) => m.ID !== data.ID)]);
+        }
+        if (data.event_type === "attachment_upload") {
+          uploadAttachment(data.roomID, data.ID, fileRef.current as File)
+            .then(() => {
+              setFile(undefined);
+              fileRef.current = undefined;
+            })
+            .catch(() => {
+              openModal("Message", {
+                msg: "Error uploading attachmnet",
+                err: true,
+                pen: false,
+              });
+            });
         }
       }
     },

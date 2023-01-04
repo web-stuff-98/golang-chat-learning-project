@@ -43,7 +43,7 @@
 
   p {
     margin: 0;
-    padding: var(--padding);
+    padding: calc(2 * var(--padding));
     line-height: 1;
   }
 }

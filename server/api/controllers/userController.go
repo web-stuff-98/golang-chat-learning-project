@@ -423,7 +423,7 @@ func HandleUpdatePfp(chatServer *ChatServer, protectedUids *map[primitive.Object
 			})
 		}
 
-		img = resize.Resize(36, 0, img, resize.Lanczos2)
+		img = resize.Resize(38, 0, img, resize.Lanczos2)
 		buf := &bytes.Buffer{}
 		if err := jpeg.Encode(buf, img, nil); err != nil {
 			c.Status(fiber.StatusInternalServerError)

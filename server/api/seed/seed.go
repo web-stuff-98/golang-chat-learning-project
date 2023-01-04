@@ -61,7 +61,7 @@ func generateUser(i uint8) (uid primitive.ObjectID, err error) {
 	if decodeErr != nil {
 		return primitive.NilObjectID, decodeErr
 	}
-	img = resize.Resize(36, 0, img, resize.Lanczos2)
+	img = resize.Resize(38, 0, img, resize.Lanczos2)
 	buf := &bytes.Buffer{}
 	if err := jpeg.Encode(buf, img, nil); err != nil {
 		return primitive.NilObjectID, err
@@ -93,7 +93,7 @@ func generateRoom(i uint8, uid primitive.ObjectID) (rid primitive.ObjectID, err 
 	if decodeErr != nil {
 		return primitive.NilObjectID, decodeErr
 	}
-	img = resize.Resize(400, 0, img, resize.Lanczos2)
+	img = resize.Resize(350, 0, img, resize.Lanczos2)
 	imgBlur = resize.Resize(6, 2, img, resize.Lanczos2)
 	buf := &bytes.Buffer{}
 	blurBuf := &bytes.Buffer{}

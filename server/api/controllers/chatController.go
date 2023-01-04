@@ -121,6 +121,15 @@ func NewServer() (*ChatServer, chan string, chan *websocket.Conn, chan string, c
 								return
 							}()
 							err := connI.WriteJSON(msg)
+							if msg.HasAttachment {
+								if connI.Locals("uid").(primitive.ObjectID).Hex() == msg.SenderUid {
+									connI.WriteJSON(fiber.Map{
+										"event_type": "attachment_upload",
+										"ID":         msg.ID.Hex(),
+										"roomID":     chatServer.chatRooms[i].roomId,
+									})
+								}
+							}
 							if err != nil {
 								log.Println(err)
 							}
@@ -336,7 +345,7 @@ func HandleWsUpgrade(c *fiber.Ctx) error {
 		socketId := uuid.New().String()
 		c.Locals("socketId", socketId)
 		helpers.AddSocketIdToSession(c, socketId)
-		log.Println("Ws upgrade")
+		log.Println("Ws upgrade for ", c.Locals("uid").(primitive.ObjectID).Hex())
 		return c.Next()
 	}
 	return fiber.ErrUpgradeRequired
@@ -345,10 +354,7 @@ func HandleWsUpgrade(c *fiber.Ctx) error {
 func HandleWsConn(chatServer *ChatServer, removeChatServerConn chan *websocket.Conn) func(*fiber.Ctx) error {
 	return websocket.New(func(c *websocket.Conn) {
 		chatServer.registerConn <- c
-		for i, _ := range chatServer.chatRooms {
-			delete(chatServer.chatRooms[i].connectionsByUid, c.Locals("uid").(primitive.ObjectID).Hex())
-			delete(chatServer.chatRooms[i].connections, c)
-		}
+		log.Println("Ws conn for ", c.Locals("uid").(primitive.ObjectID).Hex())
 		for {
 			log.Println("Socket event")
 			var Msg models.MessageEvent
@@ -713,7 +719,6 @@ func attachmentError(c *fiber.Ctx, msgId string, roomId string, chatServer *Chat
 	})
 }
 
-// Upload attachment for the users last message
 func HandleUploadAttachment(chatServer *ChatServer) func(*fiber.Ctx) error {
 	return func(c *fiber.Ctx) error {
 
@@ -732,7 +737,7 @@ func HandleUploadAttachment(chatServer *ChatServer) func(*fiber.Ctx) error {
 			})
 		}
 
-		if c.Params("roomId") == "" {
+		if c.Params("roomId") == "" || c.Params("msgId") == "" {
 			c.Status(fiber.StatusBadRequest)
 			return c.JSON(fiber.Map{
 				"message": "Bad request",
@@ -744,6 +749,14 @@ func HandleUploadAttachment(chatServer *ChatServer) func(*fiber.Ctx) error {
 			c.Status(fiber.StatusBadRequest)
 			return c.JSON(fiber.Map{
 				"message": "Invalid room ID",
+			})
+		}
+
+		msgId, err := primitive.ObjectIDFromHex(c.Params("msgId"))
+		if err != nil {
+			c.Status(fiber.StatusBadRequest)
+			return c.JSON(fiber.Map{
+				"message": "Invalid message ID",
 			})
 		}
 
@@ -764,13 +777,10 @@ func HandleUploadAttachment(chatServer *ChatServer) func(*fiber.Ctx) error {
 		}
 		foundRoom.Decode(&room)
 
-		// Iterate through all the rooms messages to find the users most recent message
-		var matchingMsg models.Message
 		var foundMsg bool
 		for _, msg := range room.Messages {
-			if msg.Uid == c.Locals("uid").(primitive.ObjectID).Hex() {
+			if msg.ID == msgId {
 				foundMsg = true
-				matchingMsg = msg
 			}
 		}
 		if !foundMsg {
@@ -782,10 +792,10 @@ func HandleUploadAttachment(chatServer *ChatServer) func(*fiber.Ctx) error {
 
 		src, err := file.Open()
 		if err != nil {
-			attachmentError(c, matchingMsg.ID.Hex(), roomId.Hex(), chatServer)
+			attachmentError(c, msgId.Hex(), roomId.Hex(), chatServer)
 		}
 
-		foundAttach := db.AttachmentCollection.FindOne(c.Context(), bson.M{"_id": matchingMsg.ID})
+		foundAttach := db.AttachmentCollection.FindOne(c.Context(), bson.M{"_id": msgId})
 		if foundAttach.Err() == nil {
 			c.Status(fiber.StatusBadRequest)
 			return c.JSON(fiber.Map{
@@ -817,16 +827,16 @@ func HandleUploadAttachment(chatServer *ChatServer) func(*fiber.Ctx) error {
 				img, decodeErr = png.Decode(src)
 			}
 			if decodeErr != nil {
-				attachmentError(c, matchingMsg.ID.Hex(), roomId.Hex(), chatServer)
+				attachmentError(c, msgId.Hex(), roomId.Hex(), chatServer)
 			}
 			buf := &bytes.Buffer{}
 			width := math.Min(float64(img.Bounds().Dx()), 350)
 			img = resize.Resize(uint(width), 0, img, resize.Lanczos2)
 			if err := jpeg.Encode(buf, img, nil); err != nil {
-				attachmentError(c, matchingMsg.ID.Hex(), roomId.Hex(), chatServer)
+				attachmentError(c, msgId.Hex(), roomId.Hex(), chatServer)
 			}
 			db.AttachmentCollection.InsertOne(c.Context(), models.Attachment{
-				ID:       matchingMsg.ID,
+				ID:       msgId,
 				Binary:   primitive.Binary{Data: buf.Bytes()},
 				MimeType: attachment_type,
 			})
@@ -835,10 +845,10 @@ func HandleUploadAttachment(chatServer *ChatServer) func(*fiber.Ctx) error {
 			/* ----- Save file to db as misc downloadable file (no video player) ----- */
 			data, err := ioutil.ReadAll(src)
 			if err != nil {
-				attachmentError(c, matchingMsg.ID.Hex(), roomId.Hex(), chatServer)
+				attachmentError(c, msgId.Hex(), roomId.Hex(), chatServer)
 			}
 			db.AttachmentCollection.InsertOne(c.Context(), models.Attachment{
-				ID:       matchingMsg.ID,
+				ID:       msgId,
 				Binary:   primitive.Binary{Data: data},
 				MimeType: attachment_type,
 			})
@@ -856,7 +866,7 @@ func HandleUploadAttachment(chatServer *ChatServer) func(*fiber.Ctx) error {
 							"in": bson.M{
 								"$cond": bson.M{
 									"if": bson.M{
-										"$eq": []interface{}{"$$message._id", matchingMsg.ID},
+										"$eq": []interface{}{"$$message._id", msgId},
 									},
 									"then": bson.M{
 										"$mergeObjects": []interface{}{
@@ -884,7 +894,7 @@ func HandleUploadAttachment(chatServer *ChatServer) func(*fiber.Ctx) error {
 					chatServer.chatRooms[r].connectionsByUid[connUid].WriteJSON(fiber.Map{
 						"event_type":      "attachment_complete",
 						"attachment_type": attachment_type,
-						"ID":              matchingMsg.ID.Hex(),
+						"ID":              msgId.Hex(),
 					})
 				}
 			}
@@ -1063,7 +1073,7 @@ func HandleUploadRoomImage(chatServer *ChatServer) func(*fiber.Ctx) error {
 			})
 		}
 
-		img = resize.Resize(400, 0, img, resize.Lanczos2)
+		img = resize.Resize(350, 0, img, resize.Lanczos2)
 		blurImg = resize.Resize(6, 2, img, resize.Lanczos2)
 		buf := &bytes.Buffer{}
 		blurBuf := &bytes.Buffer{}

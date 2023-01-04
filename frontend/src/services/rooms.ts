@@ -35,10 +35,10 @@ const createRoom = (data: { name: string }) =>
     data,
   });
 
-const uploadAttachment = (roomId: string, file: File) => {
+const uploadAttachment = (roomId: string, msgId: string, file: File) => {
   const data = new FormData();
   data.append("file", file);
-  return makeRequest(`/api/room/${roomId}/attachment`, {
+  return makeRequest(`/api/room/${roomId}/${msgId}/attachment`, {
     method: "POST",
     withCredentials: true,
     data,

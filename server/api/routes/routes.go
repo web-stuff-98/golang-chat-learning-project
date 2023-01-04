@@ -71,7 +71,7 @@ func Setup(app *fiber.App, chatServer *controllers.ChatServer, removeChatServerC
 		BlockDuration: time.Minute,
 		RouteName:     "roomimage",
 	}), helpers.AuthMiddleware, controllers.HandleUploadRoomImage(chatServer))
-	app.Post("/api/room/:roomId/attachment", mylimiter.SimpleLimiterMiddleware(ipBlockInfoMap, mylimiter.SimpleLimiterOpts{
+	app.Post("/api/room/:roomId/:msgId/attachment", mylimiter.SimpleLimiterMiddleware(ipBlockInfoMap, mylimiter.SimpleLimiterOpts{
 		Window:        time.Second * 10,
 		MaxReqs:       5,
 		BlockDuration: time.Minute,

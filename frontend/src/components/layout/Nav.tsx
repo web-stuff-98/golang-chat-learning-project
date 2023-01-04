@@ -14,7 +14,7 @@ export default function Nav() {
   const { state } = useInterface();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const isMobile = () => state.dimensions.width <= 400;
+  const isMobile = () => state.dimensions.width <= 475;
 
   return (
     <nav
@@ -22,7 +22,7 @@ export default function Nav() {
         isMobile()
           ? {
               justifyContent: "flex-end",
-              alignItems:"center",
+              alignItems: "center",
               ...(mobileOpen
                 ? {
                     height: "12.5rem",
@@ -47,7 +47,7 @@ export default function Nav() {
       {(!isMobile() || mobileOpen) && (
         <div
           style={
-            mobileOpen
+            mobileOpen && isMobile()
               ? {
                   flexDirection: "column",
                   alignItems: "flex-start",
