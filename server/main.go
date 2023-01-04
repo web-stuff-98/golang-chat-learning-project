@@ -61,7 +61,7 @@ func main() {
 		if !production {
 			uids, rids, seedErr = seed.GenerateSeed(5, 3)
 		} else {
-			uids, rids, seedErr = seed.GenerateSeed(5, 10)
+			uids, rids, seedErr = seed.GenerateSeed(50, 255)
 		}
 		if seedErr != nil {
 			log.Fatal("Seed error : ", seedErr)

@@ -31,13 +31,9 @@
   h3:first-of-type {
     margin-top: 0.125rem;
   }
-  h3:last-of-type {
-    margin-bottom: 0.125rem;
-  }
 
   p {
     margin: 0;
-    padding: calc(var(--padding) * 2);
     padding-top: 0;
     font-size: var(--text-xs);
   }
