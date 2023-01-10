@@ -803,14 +803,8 @@ func HandleUploadAttachment(chatServer *ChatServer) func(*fiber.Ctx) error {
 			})
 		}
 		var isJPEG, isPNG bool
-		isJPEG = false
-		isPNG = false
-		if file.Header.Get("Content-Type") == "image/jpeg" {
-			isJPEG = true
-		}
-		if file.Header.Get("Content-Type") == "image/png" {
-			isPNG = true
-		}
+		isJPEG = file.Header.Get("Content-Type") == "image/jpeg"
+		isPNG = file.Header.Get("Content-Type") == "image/png"
 		attachment_type := file.Header.Get("Content-Type")
 		if isJPEG || isPNG {
 			//make it image/jpeg because even if the original file was a png it gets converted to jpeg

@@ -122,7 +122,7 @@ export default function Settings() {
                   openModal("Message", {
                     msg: "Account deleted",
                     err: false,
-                    pen: true,
+                    pen: false,
                   });
                 } catch (e) {
                   openModal("Message", {

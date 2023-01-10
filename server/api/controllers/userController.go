@@ -137,8 +137,7 @@ func HandleLogin(production bool) fiber.Handler {
 			user.Base64pfp = "data:image/jpeg;base64," + base64.StdEncoding.EncodeToString(pfp.Binary.Data)
 		}
 
-		hashErr := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(body.Password))
-		if hashErr != nil {
+		if bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(body.Password)); err != nil {
 			c.Status(fiber.StatusBadRequest)
 			return c.JSON(fiber.Map{
 				"message": "Incorrect credentials",

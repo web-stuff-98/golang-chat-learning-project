@@ -38,7 +38,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       withCredentials: true,
     });
     setUser(user);
-    console.log("Token : ", user.token);
     navigate("/room/menu");
   };
 
@@ -50,7 +49,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       withCredentials: true,
     });
     setUser(user);
-    console.log("Token : ", user.token);
   };
 
   const logout = async () => {
